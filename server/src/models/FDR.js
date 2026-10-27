@@ -21,6 +21,11 @@ const documentMetadataSchema = new mongoose.Schema(
       min: 0,
       default: null,
     },
+    checksum: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     uploadedAt: {
       type: Date,
       default: null,
@@ -33,12 +38,58 @@ const ocrResultSchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      enum: ['pending', 'completed', 'failed', 'not_started'],
+      enum: [
+        'not_started',
+        'submitting',
+        'queued',
+        'processing',
+        'completed',
+        'partially_completed',
+        'failed',
+        'rejected',
+        'pending',
+      ],
       default: 'not_started',
+    },
+    providerJobId: {
+      type: String,
+      default: null,
+      select: false,
+      maxlength: 200,
+    },
+    submittedAt: {
+      type: Date,
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
     },
     extractedData: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
+    },
+    comparisonResults: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    providerErrorCode: {
+      type: String,
+      enum: [
+        null,
+        'not_configured',
+        'invalid_api_key',
+        'rate_limited',
+        'provider_timeout',
+        'provider_unavailable',
+        'provider_error',
+        'malformed_response',
+        'document_too_large',
+        'document_rejected',
+        'too_many_pages',
+        'unsupported_document',
+      ],
+      default: null,
     },
     confidence: {
       type: Number,
@@ -94,6 +145,27 @@ const reviewMetadataSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const reviewDecisionSchema = new mongoose.Schema(
+  {
+    actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    actorRole: {
+      type: String,
+      enum: ['institution_admin', 'institution_user', 'aicte_admin', 'reviewer'],
+      required: true,
+    },
+    decision: {
+      type: String,
+      enum: ['request_correction', 'reject_submission', 'complete_review', 'resubmit'],
+      required: true,
+    },
+    reason: { type: String, required: true, trim: true, maxlength: 2000 },
+    previousStatus: { type: String, required: true },
+    nextStatus: { type: String, required: true },
+    timestamp: { type: Date, required: true, default: Date.now },
+  },
+  { _id: true },
+);
+
 const fdrSchema = new mongoose.Schema(
   {
     institution: {
@@ -121,7 +193,7 @@ const fdrSchema = new mongoose.Schema(
     amount: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0.01,
     },
     currency: {
       type: String,
@@ -144,8 +216,35 @@ const fdrSchema = new mongoose.Schema(
     },
     workflowStatus: {
       type: String,
-      enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'expired', 'released'],
+      enum: [
+        'draft',
+        'submitted',
+        'under_review',
+        'correction_requested',
+        'review_completed',
+        'approved',
+        'rejected',
+        'expired',
+        'released',
+      ],
       default: 'draft',
+    },
+    submittedAt: {
+      type: Date,
+      default: null,
+    },
+    replacesFdr: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'FDR',
+      default: null,
+    },
+    reviewHistory: {
+      type: [reviewDecisionSchema],
+      default: [],
+    },
+    reviewerConfirmedDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     financialStatus: {
       type: String,
@@ -155,6 +254,11 @@ const fdrSchema = new mongoose.Schema(
     ocrResult: {
       type: ocrResultSchema,
       default: {},
+    },
+    latestForensicAnalysis: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ForensicAnalysis',
+      default: null,
     },
     verificationResult: {
       type: verificationResultSchema,
@@ -174,8 +278,15 @@ const fdrSchema = new mongoose.Schema(
 );
 
 fdrSchema.index({ institution: 1, fdrNumber: 1 }, { unique: true });
+fdrSchema.index({ institution: 1, bankName: 1 });
 fdrSchema.index({ workflowStatus: 1 });
 fdrSchema.index({ maturityDate: 1 });
+fdrSchema.index({ workflowStatus: 1, financialStatus: 1, maturityDate: 1 });
+fdrSchema.index({ replacesFdr: 1, workflowStatus: 1 });
+fdrSchema.index(
+  { replacesFdr: 1 },
+  { unique: true, partialFilterExpression: { replacesFdr: { $type: 'objectId' } } },
+);
 
 fdrSchema.path('maturityDate').validate(function validateMaturityDate(value) {
   if (!this.issueDate || !value) {

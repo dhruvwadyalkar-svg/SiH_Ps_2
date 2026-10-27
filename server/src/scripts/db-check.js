@@ -4,6 +4,9 @@ import Institution from '../models/Institution.js';
 import User from '../models/User.js';
 import FDR from '../models/FDR.js';
 import AuditLog from '../models/AuditLog.js';
+import ForensicAnalysis from '../models/ForensicAnalysis.js';
+import ReleaseRequest from '../models/ReleaseRequest.js';
+import Notification from '../models/Notification.js';
 
 const validateSchemas = async () => {
   const institution = new Institution({
@@ -72,7 +75,58 @@ const validateSchemas = async () => {
 
   await auditLog.validate();
 
-  console.log('Schema validation smoke test passed for Institution, User, FDR, and AuditLog models.');
+  const forensicAnalysis = new ForensicAnalysis({
+    fdrId: new mongoose.Types.ObjectId(),
+    checksum: 'a'.repeat(64),
+    engine: 'local-document-forensics',
+    analysisVersion: '1.0.0',
+    status: 'no_signals_detected',
+    findings: [{
+      code: 'pdf_signature_validation_unsupported',
+      severity: 'inconclusive',
+      explanation: 'Synthetic validation finding.',
+      conclusive: false,
+      heuristic: true,
+    }],
+    limitations: ['Synthetic validation limitation.'],
+    analyzedAt: new Date(),
+  });
+
+  await forensicAnalysis.validate();
+
+  const releaseRequest = new ReleaseRequest({
+    fdrId: new mongoose.Types.ObjectId(),
+    institution: new mongoose.Types.ObjectId(),
+    requestedBy: new mongoose.Types.ObjectId(),
+    reason: 'Synthetic release request validation.',
+    status: 'submitted',
+    history: [{
+      actor: new mongoose.Types.ObjectId(),
+      actorRole: 'institution_admin',
+      decision: 'submit_request',
+      reason: 'Synthetic release request validation.',
+      previousStatus: 'new',
+      nextStatus: 'submitted',
+      timestamp: new Date(),
+    }],
+  });
+
+  await releaseRequest.validate();
+
+  const notification = new Notification({
+    recipient: new mongoose.Types.ObjectId(),
+    institution: new mongoose.Types.ObjectId(),
+    fdr: new mongoose.Types.ObjectId(),
+    type: 'maturity_reminder',
+    title: 'Synthetic maturity reminder',
+    message: 'A synthetic FDR is approaching maturity.',
+    metadata: { fdrNumber: 'SYNTHETIC-FDR', reminderStage: '30d' },
+    deduplicationKey: 'synthetic-phase-nine-reminder',
+  });
+
+  await notification.validate();
+
+  console.log('Schema validation smoke test passed for Institution, User, FDR, AuditLog, ForensicAnalysis, ReleaseRequest, and Notification models.');
 };
 
 const runCheck = async () => {
