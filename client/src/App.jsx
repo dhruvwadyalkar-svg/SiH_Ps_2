@@ -15,17 +15,20 @@ import {
   ArrowRight,
   ArrowUpRight,
   Award,
+  BadgeCheck,
   BarChart3,
   Bell,
   BookOpen,
   Building,
   Building2,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
   Clock,
+  Compass,
   Copy,
   ExternalLink,
   FileCheck2,
@@ -35,12 +38,16 @@ import {
   GraduationCap,
   HelpCircle,
   History,
+  IndianRupee,
+  Landmark,
   Languages,
   Layers,
   LayoutDashboard,
   Lock,
   LogOut,
   Mail,
+  MapPin,
+  Menu,
   Phone,
   QrCode,
   RefreshCw,
@@ -54,6 +61,7 @@ import {
   TrendingUp,
   UserCheck,
   Users,
+  X,
 } from 'lucide-react';
 import { apiRequest, setUnauthorizedHandler } from './api.js';
 
@@ -122,6 +130,30 @@ export function CardFooter({ className = '', children, ...props }) {
 
 export function Badge({ variant = 'default', className = '', children, ...props }) {
   return <span className={`badge badge-${variant} ${className}`} {...props}>{children}</span>;
+}
+
+export function Button({ variant = 'primary', size = 'default', className = '', children, ...props }) {
+  const sizeClass = size === 'small' ? 'button-small' : size === 'large' ? 'button-large' : '';
+  const variantClass = variant === 'saffron' ? 'btn-aicte-primary' : variant === 'secondary-navy' ? 'btn-aicte-secondary' : `button-${variant}`;
+  return (
+    <button className={`button ${variantClass} ${sizeClass} ${className}`.trim()} {...props}>
+      {children}
+    </button>
+  );
+}
+
+export function SectionHead({ eyebrow, title, subtitle, align = 'center', className = '', ...props }) {
+  return (
+    <div className={`section-head ${align === 'left' ? 'text-left' : ''} ${className}`.trim()} {...props}>
+      {eyebrow && <span className="section-eyebrow-tricolor">{eyebrow}</span>}
+      {title && <h2>{title}</h2>}
+      {subtitle && <p>{subtitle}</p>}
+    </div>
+  );
+}
+
+export function Container({ size = 'xl', className = '', children, ...props }) {
+  return <div className={`container container-${size} ${className}`.trim()} {...props}>{children}</div>;
 }
 
 export function Progress({ value = 0, className = '', ...props }) {
@@ -203,348 +235,918 @@ function RequireAuth({ children, roles }) {
 }
 
 /* =========================================================================
-   AICTE OFFICIAL LANDING PAGE (AUTHENTIC, CLEAN, NO FAKE DATA)
+   AICTE OFFICIAL TIRANGA LANDING PAGE (AUTHENTIC, INDIAN REFERENCE, CARDS)
    ========================================================================= */
+
+function AshokaChakra({ size = 24, className = '', color = '#000080' }) {
+  const spokes = 24;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      className={`ashoka-chakra-svg ${className}`}
+      aria-hidden="true"
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <circle cx="50" cy="50" r="46" fill="none" stroke={color} strokeWidth="3" />
+      <circle cx="50" cy="50" r="10" fill={color} />
+      <circle cx="50" cy="50" r="5" fill="#ffffff" />
+      {Array.from({ length: spokes }).map((_, i) => {
+        const angle = (i * 360) / spokes;
+        const rad = (angle * Math.PI) / 180;
+        return (
+          <line
+            key={i}
+            x1="50"
+            y1="50"
+            x2={50 + 44 * Math.cos(rad)}
+            y2={50 + 44 * Math.sin(rad)}
+            stroke={color}
+            strokeWidth="2.2"
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
 function LandingPage() {
   const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer when window resizes to desktop width
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 992) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Close mobile drawer on Escape key and prevent background scroll
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+    if (mobileMenuOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <div className="aicte-landing" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
+      {/* Accessibility: Skip to Main Content */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
+
       {/* 1. National Tricolor Strip */}
-      <div className="tricolor-stripe" />
+      <div className="tricolor-stripe" role="presentation" aria-hidden="true" />
 
       {/* 2. Official Government Header Strip */}
-      <div className="gov-top-bar">
+      <div className="gov-top-bar" role="region" aria-label="Official Government Header">
         <div className="gov-top-bar-left">
           <span>🇮🇳 <b>भारत सरकार</b> | Government of India</span>
-          <span style={{ color: '#475569' }}>|</span>
+          <span className="gov-divider" aria-hidden="true">|</span>
           <span>शिक्षा मंत्रालय | Ministry of Education</span>
+          <span className="gov-divider" aria-hidden="true">|</span>
+          <span className="gov-motto-tag">सत्यमेव जयते</span>
+          <span className="gov-motto-tag gov-motto-secondary">
+            योगः कर्मसु कौशलम्
+          </span>
         </div>
         <div className="gov-top-bar-right">
+          <span className="gov-helpline-label">
+            <Phone size={12} aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+            Helpline: 011-29581000
+          </span>
+          <span className="gov-divider" aria-hidden="true">|</span>
+          <a href="#contact" className="gov-link">Helpdesk</a>
+          <span className="gov-divider" aria-hidden="true">|</span>
           <a href="#norms" className="gov-link">APH Norms</a>
-          <span style={{ color: '#475569' }}>|</span>
-          <a href="#features" className="gov-link">Innovations</a>
-          <span style={{ color: '#475569' }}>|</span>
-          <a href="#workflow" className="gov-link">Workflow</a>
-          <span style={{ color: '#475569' }}>|</span>
-          <a href="#contact" className="gov-link">Helpdesk: 011-29581000</a>
         </div>
       </div>
 
       {/* 3. Main AICTE Navigation Header */}
-      <header className="aicte-navbar">
-        <Link to="/" className="aicte-brand-logo">
-          <div className="aicte-emblem-badge">
-            <Shield size={24} />
-          </div>
-          <div className="aicte-brand-text">
-            <h2>अखिल भारतीय तकनीकी शिक्षा परिषद</h2>
-            <p>ALL INDIA COUNCIL FOR TECHNICAL EDUCATION</p>
-            <small>Statutory Body · Ministry of Education, Government of India</small>
-          </div>
-        </Link>
+      <header className="aicte-navbar" role="banner">
+        <div className="aicte-navbar-container">
+          <Link to="/" className="aicte-brand-logo" aria-label="AICTE FDR Portal Home">
+            <div className="aicte-emblem-badge" aria-hidden="true">
+              <AshokaChakra size={28} color="#FF9933" />
+            </div>
+            <div className="aicte-brand-text">
+              <h2>अखिल भारतीय तकनीकी शिक्षा परिषद</h2>
+              <p>ALL INDIA COUNCIL FOR TECHNICAL EDUCATION</p>
+              <small>Statutory Body · Ministry of Education, Government of India</small>
+            </div>
+          </Link>
 
-        <div className="aicte-nav-actions">
-          {user ? (
-            <Link to="/" className="btn-aicte-primary">
-              <LayoutDashboard size={16} /> Open Portal Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link to="/login" className="btn-aicte-primary">
-                Portal Login <ArrowRight size={15} />
-              </Link>
-              <Link to="/register" className="btn-aicte-secondary">
-                Register Institution
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
+          {/* Desktop Navigation Links */}
+          <nav className="aicte-nav-links" aria-label="Main Navigation">
+            <a href="#norms" className="aicte-nav-item">APH Norms</a>
+            <a href="#pillars" className="aicte-nav-item">Safeguards</a>
+            <a href="#banks" className="aicte-nav-item">Scheduled Banks</a>
+            <a href="#workflow" className="aicte-nav-item">SOP Lifecycle</a>
+            <a href="#bureaus" className="aicte-nav-item">Zonal Bureaus</a>
+          </nav>
 
-      {/* 4. Clean, Authoritative Hero Section (No Fake Mock Receipts or Fake Numbers) */}
-      <section className="aicte-hero-section">
-        <div className="aicte-hero-centered">
-          <div className="hero-pill-tag">
-            <ShieldCheck size={15} />
-            <span>Official AICTE Regulatory System · APH Compliant</span>
-          </div>
-
-          <h1 className="hero-headline">
-            Institutional Security Deposit & FDR Management Portal
-          </h1>
-
-          <p className="hero-subhead">
-            The centralized national regulatory platform for AICTE-approved technical institutions
-            to submit, verify, and monitor joint Fixed Deposit Receipts in compliance with
-            Approval Process Handbook (APH) mandates.
-          </p>
-
-          <div className="hero-cta-row">
+          {/* Desktop Call to Action Buttons */}
+          <div className="aicte-nav-actions">
             {user ? (
-              <Link to="/" className="btn-aicte-primary btn-lg">
-                <LayoutDashboard size={17} /> Go to Dashboard
+              <Link to="/" className="btn-aicte-primary">
+                <LayoutDashboard size={16} aria-hidden="true" /> Open Council Dashboard
               </Link>
             ) : (
               <>
-                <Link to="/login" className="btn-aicte-primary btn-lg">
-                  Sign in to Portal <ArrowRight size={17} />
+                <Link to="/login" className="btn-aicte-primary">
+                  Portal Sign In <ArrowRight size={15} aria-hidden="true" />
                 </Link>
-                <Link to="/register" className="btn-aicte-secondary btn-lg">
-                  Register New Institution
+                <Link to="/register" className="btn-aicte-secondary">
+                  Register Institution
                 </Link>
               </>
             )}
           </div>
 
-          {/* Clean 5 Capability Badges */}
-          <div className="hero-features-strip">
-            <div className="hero-feature-pill">
-              <ShieldCheck size={14} style={{ color: '#2563eb' }} />
-              <span>Multi-Signal Trust Score</span>
+          {/* Mobile Navigation Toggle Button */}
+          <button
+            type="button"
+            className="aicte-mobile-toggle"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-drawer"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+          >
+            {mobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+          </button>
+        </div>
+
+        {/* Mobile Navigation Drawer / Dropdown */}
+        <div
+          id="mobile-navigation-drawer"
+          className={`aicte-mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}
+          aria-hidden={!mobileMenuOpen}
+        >
+          <div className="aicte-mobile-drawer-content">
+            <div className="aicte-mobile-brand-row">
+              <div className="aicte-brand-text">
+                <span className="aicte-mobile-nav-title">AICTE Security Deposit Portal</span>
+                <small>Government of India</small>
+              </div>
             </div>
-            <div className="hero-feature-pill">
-              <QrCode size={14} style={{ color: '#d97706' }} />
-              <span>Bank QR Verification</span>
+
+            <nav className="aicte-mobile-nav-links" aria-label="Mobile Navigation">
+              <a href="#norms" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <BookOpen size={16} aria-hidden="true" /> APH Deposit Norms
+              </a>
+              <a href="#pillars" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <Sparkles size={16} aria-hidden="true" /> 5 Innovation Safeguards
+              </a>
+              <a href="#banks" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <Landmark size={16} aria-hidden="true" /> RBI Scheduled Banks
+              </a>
+              <a href="#workflow" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <ClipboardCheck size={16} aria-hidden="true" /> Verification SOP
+              </a>
+              <a href="#bureaus" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <MapPin size={16} aria-hidden="true" /> Zonal Regional Bureaus
+              </a>
+              <a href="#contact" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
+                <Phone size={16} aria-hidden="true" /> National Helpline
+              </a>
+            </nav>
+
+            <div className="aicte-mobile-actions">
+              {user ? (
+                <Link to="/" className="btn-aicte-primary btn-mobile-full" onClick={closeMobileMenu}>
+                  <LayoutDashboard size={16} aria-hidden="true" /> Open Council Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" className="btn-aicte-primary btn-mobile-full" onClick={closeMobileMenu}>
+                    Portal Sign In <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                  <Link to="/register" className="btn-aicte-secondary btn-mobile-full" onClick={closeMobileMenu}>
+                    Register Institution
+                  </Link>
+                </>
+              )}
             </div>
-            <div className="hero-feature-pill">
-              <Lock size={14} style={{ color: '#16a34a' }} />
-              <span>Duplicate Collision Shield</span>
-            </div>
-            <div className="hero-feature-pill">
-              <Calendar size={14} style={{ color: '#4f46e5' }} />
-              <span>Maturity Escalation Ladder</span>
-            </div>
-            <div className="hero-feature-pill">
-              <Languages size={14} style={{ color: '#9333ea' }} />
-              <span>Sarvam 23 Indic Languages</span>
+
+            <div className="aicte-mobile-drawer-footer">
+              <small>National Technical Helpline: 011-29581000</small>
+              <small>fdr-compliance@aicte-india.org</small>
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* 5. Statutory Approval Process Handbook (APH) Deposit Norms (Authentic AICTE Rules) */}
-      <section id="norms" className="landing-section bg-slate-50">
-        <div className="landing-container">
-          <div className="section-head">
-            <span className="section-eyebrow">Regulatory Compliance</span>
-            <h2>Approval Process Handbook (APH) Deposit Norms</h2>
-            <p>
-              Official statutory guidelines governing security deposits established by AICTE-approved technical institutions.
-            </p>
-          </div>
+      {/* Main Content Landmark */}
+      <main id="main-content" style={{ flex: 1 }}>
+        {/* 4. Sovereign Hero Section with Interactive Specimen FDR Card */}
+        <section className="aicte-hero-section" aria-labelledby="hero-main-heading">
+          <AshokaChakra size={480} className="hero-chakra-watermark" color="#000080" />
 
-          <div className="norms-grid">
-            <div className="norm-card">
-              <div className="norm-icon-box">
-                <Building2 size={22} />
+          <div className="aicte-hero-container">
+            {/* Left Column: Authoritative Indian Regulatory Messaging */}
+            <div className="hero-left-content">
+              <div className="hero-pill-tag">
+                <span className="hero-pill-dot" aria-hidden="true" />
+                <span>🏛️ Official Regulatory Registry · AICTE Act 1987 Statutory Compliance</span>
               </div>
-              <h4>Joint Account Endorsement</h4>
-              <p>
-                Fixed Deposit Receipts must be established jointly in the name of the Institution's Sponsoring Trust/Society and the Regional Officer or Member Secretary, AICTE.
-              </p>
-            </div>
 
-            <div className="norm-card">
-              <div className="norm-icon-box">
-                <Award size={22} />
+              <h1 id="hero-main-heading" className="hero-headline">
+                Institutional Security Deposit &amp;{' '}
+                <span className="hero-headline-highlight">FDR Management Portal</span>
+              </h1>
+
+              <p className="hero-hindi-subhead">
+                अखिल भारतीय तकनीकी शिक्षा परिषद — राष्ट्रीय संयुक्त सावधि जमा रसीद प्रबंधन प्रणाली
+              </p>
+
+              <p className="hero-subhead">
+                The centralized national regulatory platform for AICTE-approved technical institutions
+                across India to submit, verify, and monitor joint Fixed Deposit Receipts in strict compliance
+                with Approval Process Handbook (APH) statutory mandates and Reserve Bank of India (RBI) scheduled bank guidelines.
+              </p>
+
+              <div className="hero-cta-row">
+                {user ? (
+                  <Link to="/" className="btn-aicte-primary btn-lg">
+                    <LayoutDashboard size={17} aria-hidden="true" /> Go to Council Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" className="btn-aicte-primary btn-lg">
+                      Sign in to Portal <ArrowRight size={17} aria-hidden="true" />
+                    </Link>
+                    <Link to="/register" className="btn-aicte-secondary btn-lg">
+                      Register New Institution
+                    </Link>
+                    <a href="#norms" className="btn-aicte-outline-green btn-lg">
+                      <IndianRupee size={16} aria-hidden="true" /> View APH Deposit Norms
+                    </a>
+                  </>
+                )}
               </div>
-              <h4>Authorized Banking Category</h4>
-              <p>
-                Instruments must be drawn exclusively from Scheduled Commercial Banks or Nationalized Banks recognized by the Reserve Bank of India.
-              </p>
-            </div>
 
-            <div className="norm-card">
-              <div className="norm-icon-box">
-                <Clock size={22} />
-              </div>
-              <h4>Prescribed 8–10 Year Tenure</h4>
-              <p>
-                Deposits must remain active for the full statutory duration (8 to 10 years depending on programme norms) without unauthorized lien or premature encashment.
-              </p>
-            </div>
-
-            <div className="norm-card">
-              <div className="norm-icon-box">
-                <FileCheck2 size={22} />
-              </div>
-              <h4>Sanctioned Council Release</h4>
-              <p>
-                Security deposits cannot be released, refunded, or encashed without formal administrative verification and explicit AICTE Council sanction.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. 5 Core Innovation Pillars (USP Features) */}
-      <section id="features" className="landing-section">
-        <div className="landing-container">
-          <div className="section-head">
-            <span className="section-eyebrow">Advanced Verification Architecture</span>
-            <h2>5 Core Innovation Pillars</h2>
-            <p>
-              Automated safeguards that ensure every submitted security deposit is verifiable, auditable, and tracked in real-time.
-            </p>
-          </div>
-
-          <div className="features-grid-5-modern">
-            <div className="modern-feature-card">
-              <div className="feature-card-header">
-                <div className="feature-icon-circle bg-blue-50">
-                  <ShieldCheck size={20} />
+              {/* 4 Trust Badges */}
+              <div className="hero-trust-row">
+                <div className="hero-trust-item">
+                  <div className="hero-trust-icon-box" style={{ background: '#FFF5EB', color: '#D94E07' }}>
+                    <Building2 size={16} aria-hidden="true" />
+                  </div>
+                  <span>Joint AICTE Mandate (RO / MS Co-signatory)</span>
                 </div>
-                <span className="feature-num">01</span>
+                <div className="hero-trust-item">
+                  <div className="hero-trust-icon-box" style={{ background: '#EBF2F9', color: '#002147' }}>
+                    <Layers size={16} aria-hidden="true" />
+                  </div>
+                  <span>Multi-Signal Trust Engine (6 Consistency Vectors)</span>
+                </div>
+                <div className="hero-trust-item">
+                  <div className="hero-trust-icon-box" style={{ background: '#EBF7EE', color: '#046A38' }}>
+                    <Landmark size={16} aria-hidden="true" />
+                  </div>
+                  <span>RBI Scheduled Commercial Banks Network</span>
+                </div>
+                <div className="hero-trust-item">
+                  <div className="hero-trust-icon-box" style={{ background: '#FEF3C7', color: '#B45309' }}>
+                    <ShieldCheck size={16} aria-hidden="true" />
+                  </div>
+                  <span>Cryptographic Duplicate &amp; Tamper Shield</span>
+                </div>
               </div>
-              <h3>Explainable Trust Score</h3>
-              <p>
-                Synthesizes 6 transparent consistency signals (OCR fields, bank branch data, dates, duplicate checks, and forensics) into a 0–100 review priority score.
-              </p>
             </div>
 
-            <div className="modern-feature-card">
-              <div className="feature-card-header">
-                <div className="feature-icon-circle bg-amber-50">
-                  <QrCode size={20} />
-                </div>
-                <span className="feature-num">02</span>
-              </div>
-              <h3>Bank & QR Verification</h3>
-              <p>
-                Decodes certificate QR codes with SSRF protection, provides an official 6-item checklist, and pre-generates formal bank inquiry drafts.
-              </p>
-            </div>
+            {/* Right Column: Specimen FDR Certificate Card */}
+            <div className="specimen-card-wrapper">
+              <div className="fdr-specimen-card" role="region" aria-label="Specimen FDR Certificate Demonstration">
+                <div className="fdr-card-tricolor-line" aria-hidden="true" />
 
-            <div className="modern-feature-card">
-              <div className="feature-card-header">
-                <div className="feature-icon-circle bg-emerald-50">
-                  <Lock size={20} />
+                {/* Explicit Demo Data Notice Banner */}
+                <div className="fdr-demo-disclaimer-banner">
+                  <span className="fdr-demo-dot" aria-hidden="true" />
+                  <span>ILLUSTRATIVE SPECIMEN · DEMO DATA ONLY</span>
                 </div>
-                <span className="feature-num">03</span>
-              </div>
-              <h3>Duplicate Detection</h3>
-              <p>
-                Protects the national register against double-pledged instruments via SHA-256 cryptographic checksums and normalized reference matching.
-              </p>
-            </div>
 
-            <div className="modern-feature-card">
-              <div className="feature-card-header">
-                <div className="feature-icon-circle bg-indigo-50">
-                  <Calendar size={20} />
+                <div className="fdr-card-header">
+                  <div className="fdr-card-bank-info">
+                    <div className="fdr-bank-logo" aria-hidden="true">SBI</div>
+                    <div className="fdr-bank-text">
+                      <h4>State Bank of India (भारतीय स्टेट बैंक)</h4>
+                      <p>New Delhi Main Branch · IFSC: SBIN0000691</p>
+                    </div>
+                  </div>
+                  <span className="fdr-specimen-badge">Sample Receipt</span>
                 </div>
-                <span className="feature-num">04</span>
-              </div>
-              <h3>Maturity Escalation Ladder</h3>
-              <p>
-                Automated multi-stage notifications at 90 days, 30 days, 7 days, and overdue stages calculated with Asia/Kolkata calendar precision.
-              </p>
-            </div>
 
-            <div className="modern-feature-card">
-              <div className="feature-card-header">
-                <div className="feature-icon-circle bg-purple-50">
-                  <Languages size={20} />
+                <div className="fdr-card-body">
+                  <AshokaChakra size={130} className="fdr-card-body-watermark" color="#000080" />
+
+                  <div className="fdr-detail-grid">
+                    <div className="fdr-detail-cell">
+                      <span className="fdr-cell-label">Fixed Deposit Receipt No.</span>
+                      <span className="fdr-cell-val font-mono">SBI-DEL-2026-FDR-98124</span>
+                    </div>
+                    <div className="fdr-detail-cell" style={{ textAlign: 'right' }}>
+                      <span className="fdr-cell-label">Statutory Tenure</span>
+                      <span className="fdr-cell-val" style={{ color: '#D94E07' }}>10 Years Mandatory Lien</span>
+                    </div>
+                    <div className="fdr-detail-cell" style={{ gridColumn: 'span 2' }}>
+                      <span className="fdr-cell-label">Pledged Deposit Value</span>
+                      <span className="fdr-cell-val fdr-amount-highlight">
+                        ₹ 1,00,00,000/- <small style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>(One Crore Rupees)</small>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="fdr-joint-pill">
+                    <b>Joint Account Mandate:</b> Regional Officer, AICTE (North-Western Region) &amp; President, National Institute of Technology Trust
+                  </div>
+
+                  <div className="fdr-meta-row">
+                    <span><b>Issue:</b> 15-Aug-2026</span>
+                    <span><b>Maturity:</b> 14-Aug-2036</span>
+                    <span><b>Clause:</b> APH Ch. I Sec 1.4</span>
+                  </div>
                 </div>
-                <span className="feature-num">05</span>
+
+                <div className="fdr-card-footer">
+                  <div className="fdr-qr-area">
+                    <div className="fdr-mini-qr" aria-hidden="true">
+                      <QrCode size={24} />
+                    </div>
+                    <div className="fdr-qr-caption">
+                      <b>SSRF-Safe QR Validated</b>
+                      <span>Bank Certificate Matched</span>
+                    </div>
+                  </div>
+
+                  <div className="fdr-trust-badge-card">
+                    <div className="fdr-trust-badge-score">98 / 100</div>
+                    <div className="fdr-trust-badge-label">Specimen Trust Score</div>
+                  </div>
+                </div>
+
+                <div className="fdr-checksum-footer">
+                  <Check size={12} strokeWidth={3} aria-hidden="true" />
+                  <span>Cryptographic SHA-256 Registered · Specimen for Technical Evaluation</span>
+                </div>
               </div>
-              <h3>Multilingual Indic OCR</h3>
-              <p>
-                Powered by Sarvam Vision AI across 23 regional Indian languages to reliably parse receipts in Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, and more.
-              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 7. Standard 4-Step Lifecycle Workflow */}
-      <section id="workflow" className="landing-section bg-slate-50">
-        <div className="landing-container">
-          <div className="section-head">
-            <span className="section-eyebrow">Standard Operating Procedure</span>
-            <h2>Lifecycle & Verification Workflow</h2>
-            <p>
-              A structured four-step journey from initial instrument submission to maturity tracking and authorized Council release.
-            </p>
+        {/* 5. National Regulatory Reference Metrics Section */}
+        <section className="sovereign-metrics-section" aria-labelledby="metrics-heading">
+          <div className="landing-container">
+            <div className="metrics-intro-head">
+              <span className="section-eyebrow-tricolor">
+                <BarChart3 size={13} aria-hidden="true" /> Regulatory Dimensions
+              </span>
+              <h2 id="metrics-heading">National Technical Education Regulatory Reference</h2>
+              <p>
+                Prescribed statutory norms, regional coverage, and security deposit parameters administered by AICTE across India.
+              </p>
+            </div>
+
+            <div className="sovereign-metrics-grid">
+              {/* Metric 1 */}
+              <div className="metric-card-tiranga">
+                <div className="metric-top-bar bar-saffron" aria-hidden="true" />
+                <div className="metric-card-header">
+                  <span className="metric-title">Statutory Deposit Quantum</span>
+                  <div className="metric-icon-circle icon-saffron" aria-hidden="true">
+                    <IndianRupee size={20} />
+                  </div>
+                </div>
+                <h3 className="metric-value-huge">₹15L – ₹100L</h3>
+                <p className="metric-sub">
+                  Prescribed joint security deposit ranges according to program type, intake, and institutional classification under APH norms.
+                </p>
+              </div>
+
+              {/* Metric 2 */}
+              <div className="metric-card-tiranga">
+                <div className="metric-top-bar bar-blue" aria-hidden="true" />
+                <div className="metric-card-header">
+                  <span className="metric-title">Pan-India Coverage</span>
+                  <div className="metric-icon-circle icon-navy" aria-hidden="true">
+                    <MapPin size={20} />
+                  </div>
+                </div>
+                <h3 className="metric-value-huge">10 Bureaus</h3>
+                <p className="metric-sub">
+                  Zonal directorates overseeing compliance across all 28 States and 8 Union Territories with designated jurisdictional officers.
+                </p>
+              </div>
+
+              {/* Metric 3 */}
+              <div className="metric-card-tiranga">
+                <div className="metric-top-bar bar-green" aria-hidden="true" />
+                <div className="metric-card-header">
+                  <span className="metric-title">Mandatory Custody Tenure</span>
+                  <div className="metric-icon-circle icon-green" aria-hidden="true">
+                    <Clock size={20} />
+                  </div>
+                </div>
+                <h3 className="metric-value-huge">8 – 10 Years</h3>
+                <p className="metric-sub">
+                  Statutory non-encashable lien period required for technical, management, pharmacy, and polytechnic approvals.
+                </p>
+              </div>
+
+              {/* Metric 4 */}
+              <div className="metric-card-tiranga">
+                <div className="metric-top-bar bar-tricolor" aria-hidden="true" />
+                <div className="metric-card-header">
+                  <span className="metric-title">Verification Signals</span>
+                  <div className="metric-icon-circle icon-amber" aria-hidden="true">
+                    <ShieldCheck size={20} />
+                  </div>
+                </div>
+                <h3 className="metric-value-huge">6 Vectors</h3>
+                <p className="metric-sub">
+                  Automated cross-referencing of OCR extracted values, IFSC branches, maturity dates, duplicate hashes, and document forensics.
+                </p>
+              </div>
+            </div>
+
+            <div className="metrics-disclaimer-note">
+              <small>
+                * Regulatory framework norms &amp; specimen indicators. Live institutional counts populate dynamically upon authenticated portal login.
+              </small>
+            </div>
           </div>
+        </section>
 
-          <div className="workflow-steps-modern">
-            <div className="workflow-step-card">
-              <div className="step-circle">1</div>
-              <h4>Upload Deposit</h4>
-              <p>Institution submits official FDR scan with bank branch, IFSC code, and joint endorsement particulars.</p>
+        {/* 6. Approval Process Handbook (APH) Deposit Norms (4 Program Cards) */}
+        <section id="norms" className="landing-section bg-slate-50" aria-labelledby="norms-heading">
+          <div className="landing-container">
+            <div className="section-head">
+              <span className="section-eyebrow-tricolor">
+                <Award size={13} aria-hidden="true" /> Official Statutory Reference
+              </span>
+              <h2 id="norms-heading">Approval Process Handbook (APH) Deposit Norms</h2>
+              <p>
+                Mandatory statutory security deposit thresholds prescribed by AICTE for establishing and running approved technical institutions in India.
+              </p>
             </div>
-            <div className="workflow-step-card">
-              <div className="step-circle">2</div>
-              <h4>AI & Forensic Scan</h4>
-              <p>Sarvam Vision OCR extracts fields in 23 languages while file integrity and QR readers evaluate the document.</p>
+
+            <div className="norms-grid-v2">
+              {/* Norm 1 */}
+              <div className="norm-card-elevated">
+                <div className="norm-card-top-tag">
+                  <span className="norm-aph-clause">APH CHAPTER I · SEC 1.4</span>
+                  <span className="norm-amount-badge">
+                    <IndianRupee size={16} aria-hidden="true" /> 100 Lakhs
+                  </span>
+                </div>
+                <h4>Engineering &amp; Technology Institutions</h4>
+                <span className="norm-tenure-pill">
+                  <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
+                </span>
+                <p>
+                  Joint FDR in the name of the President/Secretary of the Sponsoring Trust and Regional Officer, AICTE. Non-encashable without Council sanction.
+                </p>
+              </div>
+
+              {/* Norm 2 */}
+              <div className="norm-card-elevated">
+                <div className="norm-card-top-tag">
+                  <span className="norm-aph-clause">APH CHAPTER II · SEC 2.3</span>
+                  <span className="norm-amount-badge">
+                    <IndianRupee size={16} aria-hidden="true" /> 50 Lakhs
+                  </span>
+                </div>
+                <h4>Management (MBA/PGDM) &amp; MCA</h4>
+                <span className="norm-tenure-pill">
+                  <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
+                </span>
+                <p>
+                  Drawn strictly from Reserve Bank of India Scheduled Commercial Banks with automatic interest accrual to the institution's designated operational account.
+                </p>
+              </div>
+
+              {/* Norm 3 */}
+              <div className="norm-card-elevated">
+                <div className="norm-card-top-tag">
+                  <span className="norm-aph-clause">APH CHAPTER III · SEC 3.2</span>
+                  <span className="norm-amount-badge">
+                    <IndianRupee size={16} aria-hidden="true" /> 35 Lakhs
+                  </span>
+                </div>
+                <h4>Pharmacy, Architecture &amp; Applied Arts</h4>
+                <span className="norm-tenure-pill">
+                  <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
+                </span>
+                <p>
+                  Statutory operational compliance deposit safeguarding academic continuity, student welfare, and faculty statutory obligations.
+                </p>
+              </div>
+
+              {/* Norm 4 */}
+              <div className="norm-card-elevated">
+                <div className="norm-card-top-tag">
+                  <span className="norm-aph-clause">APH CHAPTER IV · SEC 4.1</span>
+                  <span className="norm-amount-badge">
+                    <IndianRupee size={16} aria-hidden="true" /> 25 Lakhs
+                  </span>
+                </div>
+                <h4>Diploma &amp; Polytechnic Institutes</h4>
+                <span className="norm-tenure-pill">
+                  <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
+                </span>
+                <p>
+                  Mandatory security deposit for state technical education board affiliations and Council approval renewals under Chapter IV guidelines.
+                </p>
+              </div>
             </div>
-            <div className="workflow-step-card">
-              <div className="step-circle">3</div>
-              <h4>Council Verification</h4>
-              <p>AICTE officials review the 0–100 Trust Score, verify bank branch candidates, and check duplicate alerts.</p>
-            </div>
-            <div className="workflow-step-card">
-              <div className="step-circle">4</div>
-              <h4>Maturity & Release</h4>
-              <p>Automated reminders monitor tenure until legitimate renewal or formal Council-approved refund sanction.</p>
+
+            <div className="norms-statutory-notice">
+              <small>
+                <b>Statutory Reference:</b> Figures reflect baseline specimen schedules per AICTE Approval Process Handbook (APH 2024–2027). Concessional norms apply to female, PwD, and North-Eastern/hilly area institutions.
+              </small>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 8. Official AICTE Footer */}
-      <footer id="contact" className="aicte-site-footer">
+        {/* 7. 5 Core Innovation Safeguards (USP Cards) */}
+        <section id="pillars" className="landing-section" aria-labelledby="pillars-heading">
+          <div className="landing-container">
+            <div className="section-head">
+              <span className="section-eyebrow-tricolor">
+                <Sparkles size={13} aria-hidden="true" /> System Architecture &amp; Safeguards
+              </span>
+              <h2 id="pillars-heading">5 Core Compliance Safeguards</h2>
+              <p>
+                Multi-signal verification mechanisms designed to detect discrepancies, prevent duplicate pledging, and enforce statutory tenure.
+              </p>
+            </div>
+
+            <div className="pillars-grid-v2">
+              {/* Pillar 1 */}
+              <div className="pillar-card-elevated">
+                <div className="pillar-card-head">
+                  <div className="feature-icon-circle bg-blue-50" aria-hidden="true">
+                    <ShieldCheck size={22} />
+                  </div>
+                  <span className="pillar-num" aria-hidden="true">01</span>
+                </div>
+                <h3>Explainable FDR Trust Score</h3>
+                <p>
+                  Synthesizes 6 verifiable consistency vectors (OCR fields, issuing bank IFSC, maturity dates, duplicate hash checks, and file forensics) into a transparent 0–100 review priority index.
+                </p>
+              </div>
+
+              {/* Pillar 2 */}
+              <div className="pillar-card-elevated">
+                <div className="pillar-card-head">
+                  <div className="feature-icon-circle bg-amber-50" aria-hidden="true">
+                    <QrCode size={22} />
+                  </div>
+                  <span className="pillar-num" aria-hidden="true">02</span>
+                </div>
+                <h3>Bank QR &amp; Verification Workflow</h3>
+                <p>
+                  Decodes certificate QR codes with SSRF protection against untrusted domains, provides a standardized verification checklist, and prepares official branch inquiry communications.
+                </p>
+              </div>
+
+              {/* Pillar 3 */}
+              <div className="pillar-card-elevated">
+                <div className="pillar-card-head">
+                  <div className="feature-icon-circle bg-emerald-50" aria-hidden="true">
+                    <Lock size={22} />
+                  </div>
+                  <span className="pillar-num" aria-hidden="true">03</span>
+                </div>
+                <h3>Cryptographic Duplicate Shield</h3>
+                <p>
+                  Prevents double-pledging of the same financial instrument across different trusts or states using normalized FDR numbers, branch identification, and SHA-256 document fingerprints.
+                </p>
+              </div>
+
+              {/* Pillar 4 */}
+              <div className="pillar-card-elevated">
+                <div className="pillar-card-head">
+                  <div className="feature-icon-circle bg-indigo-50" aria-hidden="true">
+                    <Calendar size={22} />
+                  </div>
+                  <span className="pillar-num" aria-hidden="true">04</span>
+                </div>
+                <h3>Maturity Escalation Ladder</h3>
+                <p>
+                  Automated multi-stage tracking at 90 days, 30 days, 7 days, and overdue stages calculated with Indian Standard Time (IST) precision for institutional and zonal follow-up.
+                </p>
+              </div>
+
+              {/* Pillar 5 */}
+              <div className="pillar-card-elevated pillar-card-wide">
+                <div className="pillar-card-head">
+                  <div className="feature-icon-circle bg-purple-50" aria-hidden="true">
+                    <Languages size={22} />
+                  </div>
+                  <span className="pillar-num" aria-hidden="true">05</span>
+                </div>
+                <h3>Multilingual Indic OCR Processing</h3>
+                <p>
+                  Engineered to integrate Sarvam Vision AI across 23 scheduled Indian languages (Hindi, Marathi, Tamil, Telugu, Kannada, Bengali, Gujarati, Punjabi, Malayalam, Odia, Assamese, etc.) to parse deposit receipts and bank certificates issued in regional scripts.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 8. Authorized Indian Banking Network */}
+        <section id="banks" className="landing-section bg-slate-50" aria-labelledby="banks-heading">
+          <div className="landing-container">
+            <div className="section-head">
+              <span className="section-eyebrow-tricolor">
+                <Landmark size={13} aria-hidden="true" /> Banking Infrastructure
+              </span>
+              <h2 id="banks-heading">Recognized RBI Scheduled Commercial Banking Network</h2>
+              <p>
+                In accordance with AICTE regulations, security deposits must be drawn exclusively from Scheduled Commercial Banks recognized under the Second Schedule of the Reserve Bank of India Act, 1934.
+              </p>
+            </div>
+
+            <div className="banks-network-grid">
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>State Bank of India</h4>
+                  <small>भारतीय स्टेट बैंक · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Punjab National Bank</h4>
+                  <small>पंजाब नेशनल बैंक · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Bank of Baroda</h4>
+                  <small>बैंक ऑफ बड़ौदा · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Canara Bank</h4>
+                  <small>केनरा बैंक · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Union Bank of India</h4>
+                  <small>यूनियन बैंक ऑफ इंडिया · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Indian Bank</h4>
+                  <small>इंडियन बैंक · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Bank of India</h4>
+                  <small>बैंक ऑफ इंडिया · Nationalized Public Sector</small>
+                </div>
+              </div>
+
+              <div className="bank-partner-card">
+                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
+                <div className="bank-partner-text">
+                  <h4>Central Bank of India</h4>
+                  <small>सेंट्रल बैंक ऑफ इंडिया · Nationalized Public Sector</small>
+                </div>
+              </div>
+            </div>
+
+            <div className="banks-statutory-notice">
+              <small>
+                <b>Compliance Notice:</b> Deposits drawn from co-operative credit societies or non-scheduled banking entities are not admissible under AICTE Approval Process Handbook regulations.
+              </small>
+            </div>
+          </div>
+        </section>
+
+        {/* 9. Standard Operating Procedure (SOP) 4 Lifecycle Cards */}
+        <section id="workflow" className="landing-section" aria-labelledby="workflow-heading">
+          <div className="landing-container">
+            <div className="section-head">
+              <span className="section-eyebrow-tricolor">
+                <ClipboardCheck size={13} aria-hidden="true" /> Standard Operating Procedure
+              </span>
+              <h2 id="workflow-heading">Statutory Lifecycle &amp; Verification Workflow</h2>
+              <p>
+                A transparent four-stage lifecycle from initial joint instrument deposit creation to multi-signal validation, tenure monitoring, and authorized Council release.
+              </p>
+            </div>
+
+            <div className="sop-roadmap-grid">
+              <div className="sop-step-card">
+                <div className="sop-step-badge" aria-hidden="true">1</div>
+                <h4>Joint Creation &amp; Lien Marking</h4>
+                <p>
+                  Institution establishes a joint FDR in the name of the Sponsoring Trust and AICTE Regional Officer, obtaining an official bank lien confirmation letter.
+                </p>
+              </div>
+
+              <div className="sop-step-card">
+                <div className="sop-step-badge" aria-hidden="true">2</div>
+                <h4>Digital Submission &amp; Forensics</h4>
+                <p>
+                  Secure certificate upload with automated SHA-256 fingerprinting, QR validation, and Indic text extraction across vernacular receipts.
+                </p>
+              </div>
+
+              <div className="sop-step-card">
+                <div className="sop-step-badge" aria-hidden="true">3</div>
+                <h4>Council Scrutiny &amp; Custody</h4>
+                <p>
+                  AICTE Regional Scrutiny Officers inspect the 0–100 Trust Score, review bank branch confirmations, and endorse statutory custody.
+                </p>
+              </div>
+
+              <div className="sop-step-card">
+                <div className="sop-step-badge" aria-hidden="true">4</div>
+                <h4>Tenure Monitoring &amp; Release</h4>
+                <p>
+                  Multi-stage automated tracking throughout the 8–10 year lock-in tenure until approved replacement renewal or formal Council release sanction.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 10. AICTE Regional Bureaus Across India */}
+        <section id="bureaus" className="landing-section bg-slate-50" aria-labelledby="bureaus-heading">
+          <div className="landing-container">
+            <div className="section-head">
+              <span className="section-eyebrow-tricolor">
+                <MapPin size={13} aria-hidden="true" /> Pan-India Governance
+              </span>
+              <h2 id="bureaus-heading">AICTE Zonal Regional Bureaus</h2>
+              <p>
+                Regional directorates administering institutional compliance and joint FDR custody across designated states and union territories.
+              </p>
+            </div>
+
+            <div className="regional-bureaus-grid">
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#FF671F' }} aria-hidden="true" /> Northern Region
+                </div>
+                <span className="bureau-region">Kanpur / New Delhi</span>
+                <p className="bureau-states">Uttar Pradesh, Uttarakhand, Delhi, NCR jurisdiction.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#FF671F' }} aria-hidden="true" /> Western Region
+                </div>
+                <span className="bureau-region">Mumbai</span>
+                <p className="bureau-states">Maharashtra, Goa, Dadra &amp; Nagar Haveli, Daman &amp; Diu.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#002147' }} aria-hidden="true" /> South-Western Region
+                </div>
+                <span className="bureau-region">Bengaluru</span>
+                <p className="bureau-states">Karnataka, Kerala, Lakshadweep Islands.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#002147' }} aria-hidden="true" /> Southern Region
+                </div>
+                <span className="bureau-region">Chennai</span>
+                <p className="bureau-states">Tamil Nadu, Puducherry UT.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#046A38' }} aria-hidden="true" /> Eastern Region
+                </div>
+                <span className="bureau-region">Kolkata</span>
+                <p className="bureau-states">West Bengal, Odisha, Bihar, Jharkhand, Andaman &amp; Nicobar.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#046A38' }} aria-hidden="true" /> Central Region
+                </div>
+                <span className="bureau-region">Bhopal</span>
+                <p className="bureau-states">Madhya Pradesh, Chhattisgarh, Gujarat.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#B45309' }} aria-hidden="true" /> North-Western Region
+                </div>
+                <span className="bureau-region">Chandigarh</span>
+                <p className="bureau-states">Punjab, Haryana, Himachal Pradesh, Jammu &amp; Kashmir, Ladakh.</p>
+              </div>
+
+              <div className="bureau-card">
+                <div className="bureau-city">
+                  <MapPin size={15} style={{ color: '#B45309' }} aria-hidden="true" /> South-Central Region
+                </div>
+                <span className="bureau-region">Hyderabad</span>
+                <p className="bureau-states">Telangana, Andhra Pradesh state jurisdiction.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* 11. Official AICTE Footer */}
+      <footer id="contact" className="aicte-site-footer" role="contentinfo">
         <div className="footer-container">
-          <div className="footer-col" style={{ gridColumn: 'span 1' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div className="aicte-emblem-badge" style={{ width: 36, height: 36 }}>
-                <Shield size={18} />
+          <div className="footer-col">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div className="aicte-emblem-badge" style={{ width: 40, height: 40 }} aria-hidden="true">
+                <AshokaChakra size={24} color="#FF9933" />
               </div>
               <div>
-                <h4 style={{ margin: 0, color: '#ffffff', fontSize: 13 }}>AICTE NEW DELHI</h4>
-                <small style={{ color: '#fbbf24', fontSize: 10 }}>GOVERNMENT OF INDIA</small>
+                <h4 style={{ margin: 0, color: '#ffffff', fontSize: 14 }}>AICTE NEW DELHI</h4>
+                <small style={{ color: '#FFB085', fontSize: 11, fontWeight: 700 }}>GOVERNMENT OF INDIA</small>
               </div>
             </div>
             <p style={{ fontSize: 12, lineHeight: 1.6, color: '#94a3b8', margin: '0 0 10px' }}>
-              All India Council for Technical Education<br />
+              All India Council for Technical Education (AICTE)<br />
               Nelson Mandela Marg, Vasant Kunj<br />
-              New Delhi - 110070, India
+              New Delhi - 110070, Bharat (India)
             </p>
-            <p style={{ fontSize: 12, color: '#cbd5e1', margin: 0 }}>
-              <b>Helpline:</b> 011-29581000<br />
-              <b>Support:</b> fdr-compliance@aicte-india.org
+            <p style={{ fontSize: 12, color: '#cbd5e1', margin: 0, lineHeight: 1.6 }}>
+              <b>National Helpline:</b> 011-29581000, 29581050<br />
+              <b>Compliance Desk:</b> fdr-compliance@aicte-india.org
             </p>
           </div>
 
           <div className="footer-col">
             <h4>Portal Navigation</h4>
             <ul className="footer-links">
-              <li><Link to="/login">Sign in to Portal</Link></li>
+              <li><Link to="/login">Portal Sign In</Link></li>
               <li><Link to="/register">Institution Registration</Link></li>
               <li><a href="#norms">APH Deposit Norms</a></li>
-              <li><a href="#features">Innovation Pillars</a></li>
-              <li><a href="#workflow">Compliance Workflow</a></li>
+              <li><a href="#pillars">5 Innovation Safeguards</a></li>
+              <li><a href="#banks">RBI Bank Network</a></li>
+              <li><a href="#workflow">Compliance SOP</a></li>
+              <li><a href="#bureaus">Zonal Bureaus</a></li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>Government Portals</h4>
+            <h4>National Portals</h4>
             <ul className="footer-links">
               <li><a href="https://www.aicte-india.org" target="_blank" rel="noreferrer">AICTE Official Portal ↗</a></li>
               <li><a href="https://www.education.gov.in" target="_blank" rel="noreferrer">Ministry of Education ↗</a></li>
               <li><a href="https://www.india.gov.in" target="_blank" rel="noreferrer">National Portal of India ↗</a></li>
-              <li><a href="https://www.digitalindia.gov.in" target="_blank" rel="noreferrer">Digital India ↗</a></li>
+              <li><a href="https://www.digitalindia.gov.in" target="_blank" rel="noreferrer">Digital India Initiative ↗</a></li>
+              <li><a href="https://www.rbi.org.in" target="_blank" rel="noreferrer">Reserve Bank of India ↗</a></li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>Regulatory Disclaimer</h4>
+            <h4>Statutory Mandate</h4>
             <p style={{ fontSize: 11, lineHeight: 1.6, color: '#94a3b8', margin: 0 }}>
-              Automated Trust Scores, OCR matches, and preliminary forensics assist Council administrative evaluation. They do not constitute financial release of funds. Bank confirmation must be authenticated via authorized bank channels.
+              Under Section 10(n) of the AICTE Act 1987, approved technical institutions must maintain prescribed financial deposits in joint custody. Automated trust scoring and forensic checks assist administrative review and do not supersede Council decisions.
             </p>
+            <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: 'rgba(255, 103, 31, 0.15)', borderRadius: 4, color: '#FFB085', fontSize: 10, fontWeight: 700 }}>
+              <span>सत्यमेव जयते</span> · <span>Viksit Bharat @ 2047</span>
+            </div>
           </div>
         </div>
 
@@ -553,7 +1155,7 @@ function LandingPage() {
             © 2026 <b>All India Council for Technical Education (AICTE)</b>. All Rights Reserved.
           </div>
           <div style={{ color: '#94a3b8' }}>
-            Approval Process Handbook (APH) Regulatory Compliance System
+            Approval Process Handbook (APH) Regulatory Compliance &amp; Collateral Management System
           </div>
         </div>
       </footer>
