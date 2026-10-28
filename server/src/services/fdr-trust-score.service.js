@@ -322,13 +322,44 @@ export const calculateFdrTrustScore = ({
   unavailableChecks.push('Interest-rate reasonableness check not assessed (reference rate data unavailable).');
 
   // 4. Duplicate and Reuse Signals (max 20 pts)
-  const dup = duplicateResult || fdr.duplicateCheck || {};
-  const duplicateStatus = dup.status || 'no_candidate_found';
-  const hasConfirmedDuplicate = dup.resolution?.status === 'confirmed_duplicate';
-  const isLegitReplacement = dup.resolution?.status === 'legitimate_renewal_replacement';
+  const dup = duplicateResult || fdr.duplicateCheck || null;
+  const duplicateStatus = dup?.status || 'not_assessed';
+  const hasConfirmedDuplicate = dup?.resolution?.status === 'confirmed_duplicate';
+  const isLegitReplacement = dup?.resolution?.status === 'legitimate_renewal_replacement';
 
-  // Checksum matching (10 pts)
-  if (duplicateStatus === 'exact_document_match' && !isLegitReplacement) {
+  if (!dup || duplicateStatus === 'not_assessed') {
+    signals.push({
+      category: 'duplicate_reuse',
+      label: 'Document checksum uniqueness',
+      status: 'not_assessed',
+      score: 0,
+      maxScore: 10,
+      impact: 'neutral',
+      details: 'Duplicate check has not yet been executed.',
+      sourceReference: 'duplicateCheck.status',
+    });
+    signals.push({
+      category: 'duplicate_reuse',
+      label: 'Instrument reference uniqueness',
+      status: 'not_assessed',
+      score: 0,
+      maxScore: 5,
+      impact: 'neutral',
+      details: 'Duplicate check has not yet been executed.',
+      sourceReference: 'duplicateCheck.status',
+    });
+    signals.push({
+      category: 'duplicate_reuse',
+      label: 'Deposit metadata pattern uniqueness',
+      status: 'not_assessed',
+      score: 0,
+      maxScore: 5,
+      impact: 'neutral',
+      details: 'Duplicate check has not yet been executed.',
+      sourceReference: 'duplicateCheck.status',
+    });
+    unavailableChecks.push('Duplicate check has not yet been executed.');
+  } else if (duplicateStatus === 'exact_document_match' && !isLegitReplacement) {
     signals.push({
       category: 'duplicate_reuse',
       label: 'Document checksum uniqueness',
@@ -356,57 +387,59 @@ export const calculateFdrTrustScore = ({
     positiveFindings.push('Document checksum uniqueness verified.');
   }
 
-  // Instrument reference matching (5 pts)
-  if (duplicateStatus === 'same_instrument_reference' && !isLegitReplacement) {
-    signals.push({
-      category: 'duplicate_reuse',
-      label: 'Instrument reference uniqueness',
-      status: 'failed',
-      score: 0,
-      maxScore: 5,
-      impact: 'negative',
-      details: 'Same normalized FDR number and bank detected in multiple submissions.',
-      sourceReference: 'duplicateCheck.matches',
-    });
-    riskFindings.push('Matching normalized FDR number and bank found in another submission.');
-  } else {
-    signals.push({
-      category: 'duplicate_reuse',
-      label: 'Instrument reference uniqueness',
-      status: 'passed',
-      score: 5,
-      maxScore: 5,
-      impact: 'positive',
-      details: 'Normalized FDR number and issuing bank are distinct in the register.',
-      sourceReference: 'fdr.fdrNumber',
-    });
-    positiveFindings.push('Instrument reference uniqueness confirmed.');
-  }
+  if (dup && duplicateStatus !== 'not_assessed') {
+    // Instrument reference matching (5 pts)
+    if (duplicateStatus === 'same_instrument_reference' && !isLegitReplacement) {
+      signals.push({
+        category: 'duplicate_reuse',
+        label: 'Instrument reference uniqueness',
+        status: 'failed',
+        score: 0,
+        maxScore: 5,
+        impact: 'negative',
+        details: 'Same normalized FDR number and bank detected in multiple submissions.',
+        sourceReference: 'duplicateCheck.matches',
+      });
+      riskFindings.push('Matching normalized FDR number and bank found in another submission.');
+    } else {
+      signals.push({
+        category: 'duplicate_reuse',
+        label: 'Instrument reference uniqueness',
+        status: 'passed',
+        score: 5,
+        maxScore: 5,
+        impact: 'positive',
+        details: 'Normalized FDR number and issuing bank are distinct in the register.',
+        sourceReference: 'fdr.fdrNumber',
+      });
+      positiveFindings.push('Instrument reference uniqueness confirmed.');
+    }
 
-  // Metadata similarity (5 pts)
-  if (duplicateStatus === 'probable_metadata_duplicate' && !isLegitReplacement) {
-    signals.push({
-      category: 'duplicate_reuse',
-      label: 'Deposit metadata pattern uniqueness',
-      status: 'warning',
-      score: 2,
-      maxScore: 5,
-      impact: 'negative',
-      details: 'High similarity in amount, bank, and date parameters with another instrument.',
-      sourceReference: 'duplicateCheck.matches',
-    });
-    riskFindings.push('Probable metadata duplicate flagged for administrative review.');
-  } else {
-    signals.push({
-      category: 'duplicate_reuse',
-      label: 'Deposit metadata pattern uniqueness',
-      status: 'passed',
-      score: 5,
-      maxScore: 5,
-      impact: 'positive',
-      details: 'No suspicious duplicate metadata patterns detected.',
-      sourceReference: 'duplicateCheck.status',
-    });
+    // Metadata similarity (5 pts)
+    if (duplicateStatus === 'probable_metadata_duplicate' && !isLegitReplacement) {
+      signals.push({
+        category: 'duplicate_reuse',
+        label: 'Deposit metadata pattern uniqueness',
+        status: 'warning',
+        score: 2,
+        maxScore: 5,
+        impact: 'negative',
+        details: 'High similarity in amount, bank, and date parameters with another instrument.',
+        sourceReference: 'duplicateCheck.matches',
+      });
+      riskFindings.push('Probable metadata duplicate flagged for administrative review.');
+    } else {
+      signals.push({
+        category: 'duplicate_reuse',
+        label: 'Deposit metadata pattern uniqueness',
+        status: 'passed',
+        score: 5,
+        maxScore: 5,
+        impact: 'positive',
+        details: 'No suspicious duplicate metadata patterns detected.',
+        sourceReference: 'duplicateCheck.status',
+      });
+    }
   }
 
   // 5. Preliminary Forensic Signals (max 15 pts)
@@ -427,7 +460,31 @@ export const calculateFdrTrustScore = ({
       sourceReference: 'fdr.documentMetadata',
     });
     missingData.push('Supporting document file is missing.');
+  } else if (!forensics) {
+    signals.push({
+      category: 'forensic_signals',
+      label: 'Stored document integrity check',
+      status: 'not_assessed',
+      score: 0,
+      maxScore: 7,
+      impact: 'neutral',
+      details: 'Document forensic integrity check has not yet been executed.',
+      sourceReference: 'latestForensicAnalysis',
+    });
+    unavailableChecks.push('Document forensic integrity check not yet executed.');
   } else if (!uploadChecksum) {
+    signals.push({
+      category: 'forensic_signals',
+      label: 'Stored document integrity check',
+      status: 'missing_data',
+      score: 0,
+      maxScore: 7,
+      impact: 'neutral',
+      details: 'Upload checksum is not recorded on the document record.',
+      sourceReference: 'fdr.documentMetadata.checksum',
+    });
+    unavailableChecks.push('Upload checksum not recorded.');
+  } else if (forensics?.status === 'integrity_check_failed') {
     signals.push({
       category: 'forensic_signals',
       label: 'Stored document integrity check',

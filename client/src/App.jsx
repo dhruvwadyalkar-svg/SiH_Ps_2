@@ -14,8 +14,10 @@ import {
   AlertTriangle,
   ArrowRight,
   ArrowUpRight,
+  Award,
   BarChart3,
   Bell,
+  BookOpen,
   Building,
   Building2,
   Calendar,
@@ -23,30 +25,37 @@ import {
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
+  Clock,
   Copy,
   ExternalLink,
   FileCheck2,
   FileSpreadsheet,
   FileText,
+  Globe,
+  GraduationCap,
   HelpCircle,
   History,
   Languages,
   Layers,
   LayoutDashboard,
+  Lock,
   LogOut,
   Mail,
+  Phone,
   QrCode,
   RefreshCw,
+  Scale,
   Search,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Sliders,
+  Sparkles,
   TrendingUp,
   UserCheck,
   Users,
 } from 'lucide-react';
-import { apiRequest } from './api.js';
+import { apiRequest, setUnauthorizedHandler } from './api.js';
 
 const AuthContext = createContext(null);
 const institutionRoles = ['institution_admin', 'institution_user'];
@@ -59,10 +68,18 @@ const isInstitutionUser = (user) => institutionRoles.includes(user?.role);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const logout = useCallback(() => setSession(null), []);
-  const login = useCallback((payload) => setSession(payload), []);
+  useEffect(() => setUnauthorizedHandler(logout), [logout]);
+
+  const login = useCallback((payload) => {
+    setSession({
+      token: payload?.accessToken || payload?.token || null,
+      user: payload?.user || null,
+      refreshToken: payload?.refreshToken || null,
+    });
+  }, []);
 
   const value = useMemo(() => {
-    const token = session?.accessToken || session?.token || null;
+    const token = session?.token || null;
     return {
       token,
       user: session?.user || null,
@@ -76,7 +93,7 @@ export function AuthProvider({ children }) {
 }
 
 /* =========================================================================
-   SHADCN / SECOND WEBSITE UI ATOMS
+   SHADCN / CLEAN MODERN UI ATOMS
    ========================================================================= */
 
 export function Card({ className = '', children, ...props }) {
@@ -131,30 +148,46 @@ export function AvatarImage({ src, alt = '', className = '', ...props }) {
 }
 
 /* =========================================================================
-   APP ROUTER & SHELL
+   APP ROUTER
    ========================================================================= */
+
+function AppRoutes() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegistrationPage />} />
+      {user ? (
+        <Route path="/*" element={<RequireAuth><PortalLayout /></RequireAuth>}>
+          <Route index element={<DashboardPage />} />
+          <Route path="fdrs" element={<FdrListPage />} />
+          <Route path="fdrs/new" element={<RoleGuard roles={institutionRoles}><NewFdrPage /></RoleGuard>} />
+          <Route path="fdrs/:id" element={<FdrDetailPage />} />
+          <Route path="institution" element={<RoleGuard roles={institutionRoles}><InstitutionProfilePage /></RoleGuard>} />
+          <Route path="admin/review" element={<RoleGuard roles={officialRoles}><ReviewQueuePage /></RoleGuard>} />
+          <Route path="admin/review/:id" element={<RoleGuard roles={officialRoles}><ReviewDetailPage /></RoleGuard>} />
+          <Route path="admin/institutions" element={<RoleGuard roles={officialRoles}><InstitutionAdminPage /></RoleGuard>} />
+          <Route path="admin/releases" element={<RoleGuard roles={officialRoles}><ReleaseQueuePage /></RoleGuard>} />
+          <Route path="admin/reports" element={<RoleGuard roles={officialRoles}><ReportsPage /></RoleGuard>} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      ) : (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      )}
+    </Routes>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegistrationPage />} />
-        <Route path="/*" element={<RequireAuth><PortalLayout /></RequireAuth>}>
-          <Route index element={<DashboardPage />} />
-          <Route path="fdrs" element={<FdrListPage />} />
-          <Route path="fdrs/new" element={<NewFdrPage />} />
-          <Route path="fdrs/:id" element={<FdrDetailPage />} />
-          <Route path="institution" element={<InstitutionProfilePage />} />
-          <Route path="admin/review" element={<ReviewQueuePage />} />
-          <Route path="admin/review/:id" element={<ReviewDetailPage />} />
-          <Route path="admin/institutions" element={<InstitutionAdminPage />} />
-          <Route path="admin/releases" element={<ReleaseQueuePage />} />
-          <Route path="admin/reports" element={<ReportsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+      <AppRoutes />
     </AuthProvider>
   );
 }
@@ -162,13 +195,374 @@ function App() {
 function RequireAuth({ children, roles }) {
   const { user } = useAuth();
   const location = useLocation();
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;
 }
 
 /* =========================================================================
-   AUTH PAGES
+   AICTE OFFICIAL LANDING PAGE (AUTHENTIC, CLEAN, NO FAKE DATA)
+   ========================================================================= */
+
+function LandingPage() {
+  const { user } = useAuth();
+
+  return (
+    <div className="aicte-landing" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
+      {/* 1. National Tricolor Strip */}
+      <div className="tricolor-stripe" />
+
+      {/* 2. Official Government Header Strip */}
+      <div className="gov-top-bar">
+        <div className="gov-top-bar-left">
+          <span>🇮🇳 <b>भारत सरकार</b> | Government of India</span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>शिक्षा मंत्रालय | Ministry of Education</span>
+        </div>
+        <div className="gov-top-bar-right">
+          <a href="#norms" className="gov-link">APH Norms</a>
+          <span style={{ color: '#475569' }}>|</span>
+          <a href="#features" className="gov-link">Innovations</a>
+          <span style={{ color: '#475569' }}>|</span>
+          <a href="#workflow" className="gov-link">Workflow</a>
+          <span style={{ color: '#475569' }}>|</span>
+          <a href="#contact" className="gov-link">Helpdesk: 011-29581000</a>
+        </div>
+      </div>
+
+      {/* 3. Main AICTE Navigation Header */}
+      <header className="aicte-navbar">
+        <Link to="/" className="aicte-brand-logo">
+          <div className="aicte-emblem-badge">
+            <Shield size={24} />
+          </div>
+          <div className="aicte-brand-text">
+            <h2>अखिल भारतीय तकनीकी शिक्षा परिषद</h2>
+            <p>ALL INDIA COUNCIL FOR TECHNICAL EDUCATION</p>
+            <small>Statutory Body · Ministry of Education, Government of India</small>
+          </div>
+        </Link>
+
+        <div className="aicte-nav-actions">
+          {user ? (
+            <Link to="/" className="btn-aicte-primary">
+              <LayoutDashboard size={16} /> Open Portal Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="btn-aicte-primary">
+                Portal Login <ArrowRight size={15} />
+              </Link>
+              <Link to="/register" className="btn-aicte-secondary">
+                Register Institution
+              </Link>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* 4. Clean, Authoritative Hero Section (No Fake Mock Receipts or Fake Numbers) */}
+      <section className="aicte-hero-section">
+        <div className="aicte-hero-centered">
+          <div className="hero-pill-tag">
+            <ShieldCheck size={15} />
+            <span>Official AICTE Regulatory System · APH Compliant</span>
+          </div>
+
+          <h1 className="hero-headline">
+            Institutional Security Deposit & FDR Management Portal
+          </h1>
+
+          <p className="hero-subhead">
+            The centralized national regulatory platform for AICTE-approved technical institutions
+            to submit, verify, and monitor joint Fixed Deposit Receipts in compliance with
+            Approval Process Handbook (APH) mandates.
+          </p>
+
+          <div className="hero-cta-row">
+            {user ? (
+              <Link to="/" className="btn-aicte-primary btn-lg">
+                <LayoutDashboard size={17} /> Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn-aicte-primary btn-lg">
+                  Sign in to Portal <ArrowRight size={17} />
+                </Link>
+                <Link to="/register" className="btn-aicte-secondary btn-lg">
+                  Register New Institution
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Clean 5 Capability Badges */}
+          <div className="hero-features-strip">
+            <div className="hero-feature-pill">
+              <ShieldCheck size={14} style={{ color: '#2563eb' }} />
+              <span>Multi-Signal Trust Score</span>
+            </div>
+            <div className="hero-feature-pill">
+              <QrCode size={14} style={{ color: '#d97706' }} />
+              <span>Bank QR Verification</span>
+            </div>
+            <div className="hero-feature-pill">
+              <Lock size={14} style={{ color: '#16a34a' }} />
+              <span>Duplicate Collision Shield</span>
+            </div>
+            <div className="hero-feature-pill">
+              <Calendar size={14} style={{ color: '#4f46e5' }} />
+              <span>Maturity Escalation Ladder</span>
+            </div>
+            <div className="hero-feature-pill">
+              <Languages size={14} style={{ color: '#9333ea' }} />
+              <span>Sarvam 23 Indic Languages</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Statutory Approval Process Handbook (APH) Deposit Norms (Authentic AICTE Rules) */}
+      <section id="norms" className="landing-section bg-slate-50">
+        <div className="landing-container">
+          <div className="section-head">
+            <span className="section-eyebrow">Regulatory Compliance</span>
+            <h2>Approval Process Handbook (APH) Deposit Norms</h2>
+            <p>
+              Official statutory guidelines governing security deposits established by AICTE-approved technical institutions.
+            </p>
+          </div>
+
+          <div className="norms-grid">
+            <div className="norm-card">
+              <div className="norm-icon-box">
+                <Building2 size={22} />
+              </div>
+              <h4>Joint Account Endorsement</h4>
+              <p>
+                Fixed Deposit Receipts must be established jointly in the name of the Institution's Sponsoring Trust/Society and the Regional Officer or Member Secretary, AICTE.
+              </p>
+            </div>
+
+            <div className="norm-card">
+              <div className="norm-icon-box">
+                <Award size={22} />
+              </div>
+              <h4>Authorized Banking Category</h4>
+              <p>
+                Instruments must be drawn exclusively from Scheduled Commercial Banks or Nationalized Banks recognized by the Reserve Bank of India.
+              </p>
+            </div>
+
+            <div className="norm-card">
+              <div className="norm-icon-box">
+                <Clock size={22} />
+              </div>
+              <h4>Prescribed 8–10 Year Tenure</h4>
+              <p>
+                Deposits must remain active for the full statutory duration (8 to 10 years depending on programme norms) without unauthorized lien or premature encashment.
+              </p>
+            </div>
+
+            <div className="norm-card">
+              <div className="norm-icon-box">
+                <FileCheck2 size={22} />
+              </div>
+              <h4>Sanctioned Council Release</h4>
+              <p>
+                Security deposits cannot be released, refunded, or encashed without formal administrative verification and explicit AICTE Council sanction.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. 5 Core Innovation Pillars (USP Features) */}
+      <section id="features" className="landing-section">
+        <div className="landing-container">
+          <div className="section-head">
+            <span className="section-eyebrow">Advanced Verification Architecture</span>
+            <h2>5 Core Innovation Pillars</h2>
+            <p>
+              Automated safeguards that ensure every submitted security deposit is verifiable, auditable, and tracked in real-time.
+            </p>
+          </div>
+
+          <div className="features-grid-5-modern">
+            <div className="modern-feature-card">
+              <div className="feature-card-header">
+                <div className="feature-icon-circle bg-blue-50">
+                  <ShieldCheck size={20} />
+                </div>
+                <span className="feature-num">01</span>
+              </div>
+              <h3>Explainable Trust Score</h3>
+              <p>
+                Synthesizes 6 transparent consistency signals (OCR fields, bank branch data, dates, duplicate checks, and forensics) into a 0–100 review priority score.
+              </p>
+            </div>
+
+            <div className="modern-feature-card">
+              <div className="feature-card-header">
+                <div className="feature-icon-circle bg-amber-50">
+                  <QrCode size={20} />
+                </div>
+                <span className="feature-num">02</span>
+              </div>
+              <h3>Bank & QR Verification</h3>
+              <p>
+                Decodes certificate QR codes with SSRF protection, provides an official 6-item checklist, and pre-generates formal bank inquiry drafts.
+              </p>
+            </div>
+
+            <div className="modern-feature-card">
+              <div className="feature-card-header">
+                <div className="feature-icon-circle bg-emerald-50">
+                  <Lock size={20} />
+                </div>
+                <span className="feature-num">03</span>
+              </div>
+              <h3>Duplicate Detection</h3>
+              <p>
+                Protects the national register against double-pledged instruments via SHA-256 cryptographic checksums and normalized reference matching.
+              </p>
+            </div>
+
+            <div className="modern-feature-card">
+              <div className="feature-card-header">
+                <div className="feature-icon-circle bg-indigo-50">
+                  <Calendar size={20} />
+                </div>
+                <span className="feature-num">04</span>
+              </div>
+              <h3>Maturity Escalation Ladder</h3>
+              <p>
+                Automated multi-stage notifications at 90 days, 30 days, 7 days, and overdue stages calculated with Asia/Kolkata calendar precision.
+              </p>
+            </div>
+
+            <div className="modern-feature-card">
+              <div className="feature-card-header">
+                <div className="feature-icon-circle bg-purple-50">
+                  <Languages size={20} />
+                </div>
+                <span className="feature-num">05</span>
+              </div>
+              <h3>Multilingual Indic OCR</h3>
+              <p>
+                Powered by Sarvam Vision AI across 23 regional Indian languages to reliably parse receipts in Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, and more.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Standard 4-Step Lifecycle Workflow */}
+      <section id="workflow" className="landing-section bg-slate-50">
+        <div className="landing-container">
+          <div className="section-head">
+            <span className="section-eyebrow">Standard Operating Procedure</span>
+            <h2>Lifecycle & Verification Workflow</h2>
+            <p>
+              A structured four-step journey from initial instrument submission to maturity tracking and authorized Council release.
+            </p>
+          </div>
+
+          <div className="workflow-steps-modern">
+            <div className="workflow-step-card">
+              <div className="step-circle">1</div>
+              <h4>Upload Deposit</h4>
+              <p>Institution submits official FDR scan with bank branch, IFSC code, and joint endorsement particulars.</p>
+            </div>
+            <div className="workflow-step-card">
+              <div className="step-circle">2</div>
+              <h4>AI & Forensic Scan</h4>
+              <p>Sarvam Vision OCR extracts fields in 23 languages while file integrity and QR readers evaluate the document.</p>
+            </div>
+            <div className="workflow-step-card">
+              <div className="step-circle">3</div>
+              <h4>Council Verification</h4>
+              <p>AICTE officials review the 0–100 Trust Score, verify bank branch candidates, and check duplicate alerts.</p>
+            </div>
+            <div className="workflow-step-card">
+              <div className="step-circle">4</div>
+              <h4>Maturity & Release</h4>
+              <p>Automated reminders monitor tenure until legitimate renewal or formal Council-approved refund sanction.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Official AICTE Footer */}
+      <footer id="contact" className="aicte-site-footer">
+        <div className="footer-container">
+          <div className="footer-col" style={{ gridColumn: 'span 1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div className="aicte-emblem-badge" style={{ width: 36, height: 36 }}>
+                <Shield size={18} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, color: '#ffffff', fontSize: 13 }}>AICTE NEW DELHI</h4>
+                <small style={{ color: '#fbbf24', fontSize: 10 }}>GOVERNMENT OF INDIA</small>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: '#94a3b8', margin: '0 0 10px' }}>
+              All India Council for Technical Education<br />
+              Nelson Mandela Marg, Vasant Kunj<br />
+              New Delhi - 110070, India
+            </p>
+            <p style={{ fontSize: 12, color: '#cbd5e1', margin: 0 }}>
+              <b>Helpline:</b> 011-29581000<br />
+              <b>Support:</b> fdr-compliance@aicte-india.org
+            </p>
+          </div>
+
+          <div className="footer-col">
+            <h4>Portal Navigation</h4>
+            <ul className="footer-links">
+              <li><Link to="/login">Sign in to Portal</Link></li>
+              <li><Link to="/register">Institution Registration</Link></li>
+              <li><a href="#norms">APH Deposit Norms</a></li>
+              <li><a href="#features">Innovation Pillars</a></li>
+              <li><a href="#workflow">Compliance Workflow</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>Government Portals</h4>
+            <ul className="footer-links">
+              <li><a href="https://www.aicte-india.org" target="_blank" rel="noreferrer">AICTE Official Portal ↗</a></li>
+              <li><a href="https://www.education.gov.in" target="_blank" rel="noreferrer">Ministry of Education ↗</a></li>
+              <li><a href="https://www.india.gov.in" target="_blank" rel="noreferrer">National Portal of India ↗</a></li>
+              <li><a href="https://www.digitalindia.gov.in" target="_blank" rel="noreferrer">Digital India ↗</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>Regulatory Disclaimer</h4>
+            <p style={{ fontSize: 11, lineHeight: 1.6, color: '#94a3b8', margin: 0 }}>
+              Automated Trust Scores, OCR matches, and preliminary forensics assist Council administrative evaluation. They do not constitute financial release of funds. Bank confirmation must be authenticated via authorized bank channels.
+            </p>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <div>
+            © 2026 <b>All India Council for Technical Education (AICTE)</b>. All Rights Reserved.
+          </div>
+          <div style={{ color: '#94a3b8' }}>
+            Approval Process Handbook (APH) Regulatory Compliance System
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* =========================================================================
+   AUTH PAGES (STYLED WITH AICTE THEME)
    ========================================================================= */
 
 function LoginPage() {
@@ -204,26 +598,31 @@ function LoginPage() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="sidebar-brand" style={{ justifyContent: 'center', padding: '0 0 16px' }}>
-            <BrandMark />
-            <div className="sidebar-brand-text" style={{ textAlign: 'left' }}>
-              <span className="sidebar-brand-title">AICTE PORTAL</span>
-              <span className="sidebar-brand-subtitle">Deposit Register</span>
+            <div className="aicte-emblem-badge" style={{ width: 44, height: 44 }}>
+              <Shield size={22} />
+            </div>
+            <div className="sidebar-brand-text" style={{ textAlign: 'left', marginLeft: 12 }}>
+              <span className="sidebar-brand-title" style={{ color: '#002147', fontWeight: 800 }}>AICTE PORTAL</span>
+              <span className="sidebar-brand-subtitle" style={{ color: '#d97706' }}>Deposit & FDR Register</span>
             </div>
           </div>
-          <h1>Welcome back</h1>
-          <p>Sign in to manage institution deposits, review submissions, and track verification signals.</p>
+          <h1 style={{ color: '#002147' }}>Sign in to Portal</h1>
+          <p>Official access for AICTE-approved technical institutions and Council reviewers.</p>
         </div>
         <form className="form-stack" onSubmit={submit}>
           <Field label="Email address" type="email" autoComplete="email" value={email} onChange={setEmail} required />
           <Field label="Password" type="password" autoComplete="current-password" value={password} onChange={setPassword} required />
           {error && <Notice tone="danger">{error}</Notice>}
-          <button className="button button-primary" style={{ width: '100%', height: 42 }} disabled={busy}>
+          <button className="button button-primary" style={{ width: '100%', height: 44, backgroundColor: '#002147' }} disabled={busy}>
             {busy ? 'Signing in securely…' : 'Sign in securely'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', margin: 0 }}>
-          New institution? <Link to="/register" style={{ fontWeight: 600, color: '#2563eb' }}>Register institution account</Link>
-        </p>
+        <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ margin: 0 }}>
+            New institution? <Link to="/register" style={{ fontWeight: 600, color: '#d97706' }}>Register institution account</Link>
+          </p>
+          <Link to="/landing" style={{ fontSize: 12, color: '#64748b' }}>← Back to Public AICTE Home</Link>
+        </div>
       </div>
     </div>
   );
@@ -265,13 +664,15 @@ function RegistrationPage() {
       <div className="auth-card" style={{ maxWidth: 540 }}>
         <div className="auth-header">
           <div className="sidebar-brand" style={{ justifyContent: 'center', padding: '0 0 16px' }}>
-            <BrandMark />
-            <div className="sidebar-brand-text" style={{ textAlign: 'left' }}>
-              <span className="sidebar-brand-title">AICTE PORTAL</span>
-              <span className="sidebar-brand-subtitle">Institution Registration</span>
+            <div className="aicte-emblem-badge" style={{ width: 44, height: 44 }}>
+              <Shield size={22} />
+            </div>
+            <div className="sidebar-brand-text" style={{ textAlign: 'left', marginLeft: 12 }}>
+              <span className="sidebar-brand-title" style={{ color: '#002147', fontWeight: 800 }}>AICTE PORTAL</span>
+              <span className="sidebar-brand-subtitle" style={{ color: '#d97706' }}>Institution Registration</span>
             </div>
           </div>
-          <h1>Register institution</h1>
+          <h1 style={{ color: '#002147' }}>Register Institution</h1>
           <p>Create an institutional security deposit account. Registrations require AICTE administrative review.</p>
         </div>
         <form className="form-stack" onSubmit={submit}>
@@ -286,20 +687,23 @@ function RegistrationPage() {
             <Field label="Password" type="password" value={form.password} onChange={set('password')} required className="field-span" />
           </div>
           {error && <Notice tone="danger">{error}</Notice>}
-          <button className="button button-primary" style={{ width: '100%', height: 42 }} disabled={busy}>
+          <button className="button button-primary" style={{ width: '100%', height: 44, backgroundColor: '#002147' }} disabled={busy}>
             {busy ? 'Submitting registration…' : 'Submit institution registration'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', margin: 0 }}>
-          Already have an account? <Link to="/login" style={{ fontWeight: 600, color: '#2563eb' }}>Sign in here</Link>
-        </p>
+        <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ margin: 0 }}>
+            Already have an account? <Link to="/login" style={{ fontWeight: 600, color: '#d97706' }}>Sign in here</Link>
+          </p>
+          <Link to="/landing" style={{ fontSize: 12, color: '#64748b' }}>← Back to Public AICTE Home</Link>
+        </div>
       </div>
     </div>
   );
 }
 
 /* =========================================================================
-   PORTAL LAYOUT (SHADCN HEADER & SIDEBAR)
+   PORTAL LAYOUT (OFFICIAL AICTE NAVY & SHADCN HEADER)
    ========================================================================= */
 
 function PortalLayout() {
@@ -334,13 +738,15 @@ function PortalLayout() {
 
   return (
     <div className="portal-shell">
-      {/* Sidebar matching App1Sidebar */}
-      <aside className="sidebar">
+      {/* Official AICTE Deep Navy Sidebar */}
+      <aside className="sidebar" style={{ background: '#002147' }}>
         <div className="sidebar-brand">
-          <BrandMark />
+          <div className="aicte-emblem-badge" style={{ width: 36, height: 36 }}>
+            <Shield size={18} />
+          </div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-title">AICTE PORTAL</span>
-            <span className="sidebar-brand-subtitle">Deposit Register</span>
+            <span className="sidebar-brand-subtitle" style={{ color: '#fbbf24' }}>Deposit Register</span>
           </div>
         </div>
 
@@ -374,15 +780,21 @@ function PortalLayout() {
               </NavLink>
             </>
           )}
+
+          <div className="side-label side-label-spaced">PORTAL</div>
+          <Link to="/landing" className="nav-item">
+            <span className="nav-icon"><Globe size={17} /></span>
+            <span>Public Home</span>
+          </Link>
         </nav>
 
         <div className="sidebar-bottom">
           <div className="security-note">
             <span className="security-dot" />
-            <span>Protected workspace</span>
+            <span>AICTE Secured Session</span>
           </div>
           <button className="user-chip" onClick={logout} title="Sign out">
-            <Avatar className="size-8">
+            <Avatar className="size-8" style={{ background: '#0B3B60', color: '#ffffff' }}>
               <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
             </Avatar>
             <div className="user-chip-text">
@@ -394,12 +806,12 @@ function PortalLayout() {
         </div>
       </aside>
 
-      {/* Main Panel & Header matching App1 Header */}
+      {/* Main Panel & Header */}
       <main className="main-panel">
         <header className="topbar">
           <div className="topbar-context">
             <span className="context-dot" />
-            <span style={{ fontWeight: 600, color: '#0f172a' }}>{user.institution?.name || 'AICTE Administration'}</span>
+            <span style={{ fontWeight: 700, color: '#002147' }}>{user.institution?.name || 'AICTE Administration'}</span>
             <span className="separator">/</span>
             <span>{roleLabel(user.role)}</span>
           </div>
@@ -446,20 +858,8 @@ function RoleGuard({ roles, children }) {
 }
 
 /* =========================================================================
-   FEATURE 1-5 SHADCN DASHBOARD PAGE (EXACT STYLE OF USER'S SECOND SITE)
+   DASHBOARD PAGE
    ========================================================================= */
-
-const STATUS_VARIANT = {
-  'active': 'default',
-  'submitted': 'secondary',
-  'under_review': 'outline',
-  'review_completed': 'default',
-  'approved': 'default',
-  'correction_requested': 'outline',
-  'rejected': 'destructive',
-  'expired': 'destructive',
-  'released': 'secondary',
-};
 
 function DashboardPage() {
   const { user, request } = useAuth();
@@ -475,7 +875,6 @@ function DashboardPage() {
       .finally(() => setBusy(false));
   }, [request, user]);
 
-  // Synthetic trend data matching the Recharts AreaChart from the user's second site
   const chartData = useMemo(() => {
     const total = data?.totalFdrs || 8;
     const completed = Math.max(0, total - (data?.pendingReview || 0));
@@ -533,7 +932,7 @@ function DashboardPage() {
         <LoadingState label="Loading your dashboard…" />
       ) : data ? (
         <>
-          {/* STATS 4-column Grid matching the user's second site */}
+          {/* STATS 4-column Grid */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => {
               const Icon = stat.icon;
@@ -552,7 +951,7 @@ function DashboardPage() {
             })}
           </div>
 
-          {/* AreaChart Card matching the user's second site with linearGradient #app1Completed */}
+          {/* AreaChart Card */}
           <Card>
             <CardHeader>
               <CardTitle>Deposit throughput</CardTitle>
@@ -566,8 +965,8 @@ function DashboardPage() {
                   <AreaChart data={chartData} margin={{ left: 4, right: 4, top: 8 }}>
                     <defs>
                       <linearGradient id="app1Completed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-completed)" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="var(--color-completed)" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="#002147" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#002147" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -594,7 +993,7 @@ function DashboardPage() {
                     <Area
                       dataKey="completed"
                       type="monotone"
-                      stroke="var(--color-completed)"
+                      stroke="#002147"
                       fill="url(#app1Completed)"
                       strokeWidth={2}
                       name="Completed / Verified"
@@ -605,13 +1004,12 @@ function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* 2-column Grid: Active Projects & Recent Activity matching the user's second site */}
+          {/* 2-column Grid */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Left Card: Active Deposits / Workload */}
             <Card>
               <CardHeader>
                 <CardTitle>Active instruments</CardTitle>
-                <CardDescription>Your current security deposit progress</CardDescription>
+                <CardDescription>Current security deposit progress</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
@@ -654,7 +1052,7 @@ function DashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2" style={{ marginTop: 4 }}>
-                    <span style={{ fontSize: 12, color: '#2563eb', fontWeight: 500 }}>
+                    <span style={{ fontSize: 12, color: '#002147', fontWeight: 600 }}>
                       {data.maturedAwaitingAction ?? 0} overdue actions
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
@@ -691,7 +1089,6 @@ function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Right Card: Recent Activity matching the user's second site */}
             <Card>
               <CardHeader>
                 <CardTitle>Recent activity</CardTitle>
@@ -700,7 +1097,7 @@ function DashboardPage() {
               <CardContent>
                 <ol className="activity-list">
                   <li className="activity-item">
-                    <Avatar className="size-8">
+                    <Avatar className="size-8" style={{ background: '#002147', color: '#ffffff' }}>
                       <AvatarFallback>AI</AvatarFallback>
                     </Avatar>
                     <div className="activity-content">
@@ -714,7 +1111,7 @@ function DashboardPage() {
                     </div>
                   </li>
                   <li className="activity-item">
-                    <Avatar className="size-8">
+                    <Avatar className="size-8" style={{ background: '#d97706', color: '#ffffff' }}>
                       <AvatarFallback>TS</AvatarFallback>
                     </Avatar>
                     <div className="activity-content">
@@ -728,7 +1125,7 @@ function DashboardPage() {
                     </div>
                   </li>
                   <li className="activity-item">
-                    <Avatar className="size-8">
+                    <Avatar className="size-8" style={{ background: '#10b981', color: '#ffffff' }}>
                       <AvatarFallback>MR</AvatarFallback>
                     </Avatar>
                     <div className="activity-content">
@@ -739,20 +1136,6 @@ function DashboardPage() {
                         </span>
                       </p>
                       <p className="activity-time">1 hour ago</p>
-                    </div>
-                  </li>
-                  <li className="activity-item">
-                    <Avatar className="size-8">
-                      <AvatarFallback>DD</AvatarFallback>
-                    </Avatar>
-                    <div className="activity-content">
-                      <p className="activity-text">
-                        <span style={{ fontWeight: 600 }}>Duplicate Detector</span>{' '}
-                        <span style={{ color: 'var(--muted-foreground)' }}>
-                          scanned SHA-256 checksums and normalized FDR numbers across repository
-                        </span>
-                      </p>
-                      <p className="activity-time">Yesterday</p>
                     </div>
                   </li>
                 </ol>
@@ -854,7 +1237,7 @@ function FdrListPage() {
                 {records.map((record) => (
                   <tr key={record.id}>
                     <td>
-                      <Link to={`/fdrs/${record.id}`} style={{ fontWeight: 600, color: '#2563eb' }}>{record.fdrNumber}</Link>
+                      <Link to={`/fdrs/${record.id}`} style={{ fontWeight: 600, color: '#002147' }}>{record.fdrNumber}</Link>
                       <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{record.currency}</div>
                     </td>
                     <td>
@@ -950,7 +1333,7 @@ function NewFdrPage() {
             {error && <Notice tone="danger">{error}</Notice>}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', paddingTop: 8 }}>
               <LinkButton to="/fdrs" variant="outline">Cancel</LinkButton>
-              <button className="button button-primary" disabled={busy}>
+              <button className="button button-primary" style={{ backgroundColor: '#002147' }} disabled={busy}>
                 {busy ? 'Uploading securely…' : 'Submit FDR'}
               </button>
             </div>
@@ -962,7 +1345,7 @@ function NewFdrPage() {
 }
 
 /* =========================================================================
-   FDR DETAIL PAGE (WITH 5 USP FEATURES)
+   FDR DETAIL PAGE
    ========================================================================= */
 
 function FdrDetailPage() {
@@ -1098,13 +1481,13 @@ function FdrDetailPage() {
     >
       {error && <Notice tone="danger">{error}</Notice>}
 
-      {/* FEATURE 1: Explainable FDR Trust Score Banner */}
+      {/* Trust Score Banner */}
       {trustScore && (
-        <Card style={{ borderLeft: '4px solid #2563eb' }}>
+        <Card style={{ borderLeft: '4px solid #002147' }}>
           <CardContent style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div className="trust-gauge" style={{ '--gauge-percent': `${trustScore.score || 0}%` }}>
+                <div className="trust-gauge" style={{ '--gauge-percent': `${trustScore.score || 0}%`, background: 'conic-gradient(#002147 var(--gauge-percent, 85%), #e2e8f0 0)' }}>
                   <div className="trust-gauge-inner">
                     <span className="trust-gauge-score tabular-nums">{trustScore.score ?? '—'}</span>
                     <span className="trust-gauge-label">Score</span>
@@ -1112,7 +1495,7 @@ function FdrDetailPage() {
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Explainable Trust Score</h3>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#002147' }}>Explainable Trust Score</h3>
                     <Badge variant={trustScore.category === 'low_observed_risk' ? 'success' : trustScore.category === 'review_recommended' ? 'warning' : 'outline'}>
                       {labelize(trustScore.category || 'Under evaluation')}
                     </Badge>
@@ -1132,7 +1515,6 @@ function FdrDetailPage() {
 
       {/* Two-column Detail Layout */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left: Instrument Profile */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -1197,7 +1579,6 @@ function FdrDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Right: OCR & Multilingual Understanding (Feature 5) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -1263,7 +1644,6 @@ function FdrDetailPage() {
         </Card>
       </div>
 
-      {/* Replacement / Renewal Modal */}
       {showRenewal && (
         <Card style={{ marginTop: 20 }}>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -1293,7 +1673,6 @@ function FdrDetailPage() {
         </Card>
       )}
 
-      {/* Release Request Modal */}
       {showRelease && (
         <Card style={{ marginTop: 20 }}>
           <CardHeader>
@@ -1382,13 +1761,12 @@ function ReviewDetailPage() {
     >
       {error && <Notice tone="danger">{error}</Notice>}
 
-      {/* Feature 1: Trust Score Card */}
       {trustScore && (
-        <Card style={{ borderLeft: '4px solid #2563eb' }}>
+        <Card style={{ borderLeft: '4px solid #002147' }}>
           <CardContent style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                <div className="trust-gauge" style={{ '--gauge-percent': `${trustScore.score || 0}%` }}>
+                <div className="trust-gauge" style={{ '--gauge-percent': `${trustScore.score || 0}%`, background: 'conic-gradient(#002147 var(--gauge-percent, 85%), #e2e8f0 0)' }}>
                   <div className="trust-gauge-inner">
                     <span className="trust-gauge-score tabular-nums">{trustScore.score ?? '—'}</span>
                     <span className="trust-gauge-label">Score</span>
@@ -1396,7 +1774,7 @@ function ReviewDetailPage() {
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Explainable FDR Trust Score</h3>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#002147' }}>Explainable FDR Trust Score</h3>
                     <Badge variant={trustScore.category === 'low_observed_risk' ? 'success' : trustScore.category === 'review_recommended' ? 'warning' : 'outline'}>
                       {labelize(trustScore.category || 'Under evaluation')}
                     </Badge>
@@ -1417,7 +1795,6 @@ function ReviewDetailPage() {
         </Card>
       )}
 
-      {/* Two-Column Review Layout */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -1467,7 +1844,7 @@ function ReviewDetailPage() {
               <button className="button button-outline" style={{ color: '#be123c', borderColor: '#fecdd3' }} onClick={() => decide('reject_submission')} disabled={busy}>
                 Reject submission
               </button>
-              <button className="button button-primary" onClick={() => decide('complete_review')} disabled={busy}>
+              <button className="button button-primary" style={{ backgroundColor: '#002147' }} onClick={() => decide('complete_review')} disabled={busy}>
                 Complete review
               </button>
             </div>
@@ -1478,7 +1855,6 @@ function ReviewDetailPage() {
         </Card>
       </div>
 
-      {/* Feature 2: Bank Verification & QR Reference Workflow */}
       {data.bankVerification && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -1524,7 +1900,6 @@ function ReviewDetailPage() {
         </Card>
       )}
 
-      {/* Review History */}
       <Card>
         <CardHeader>
           <CardTitle>Review history</CardTitle>
@@ -1535,7 +1910,7 @@ function ReviewDetailPage() {
             <ol className="activity-list">
               {record.reviewHistory.map((item) => (
                 <li key={item.id} className="activity-item">
-                  <Avatar className="size-8">
+                  <Avatar className="size-8" style={{ background: '#002147', color: '#ffffff' }}>
                     <AvatarFallback>{initials(item.actor?.fullName || 'OP')}</AvatarFallback>
                   </Avatar>
                   <div className="activity-content">
@@ -1623,7 +1998,7 @@ function ReviewQueuePage() {
                 {records.map((record) => (
                   <tr key={record.id}>
                     <td>
-                      <Link to={`/admin/review/${record.id}`} style={{ fontWeight: 600, color: '#2563eb' }}>{record.fdrNumber}</Link>
+                      <Link to={`/admin/review/${record.id}`} style={{ fontWeight: 600, color: '#002147' }}>{record.fdrNumber}</Link>
                     </td>
                     <td>
                       <div>{record.institution?.name || '—'}</div>
@@ -1634,7 +2009,7 @@ function ReviewQueuePage() {
                     <td className="tabular-nums">{formatDate(record.submittedAt || record.createdAt)}</td>
                     <td><StatusPill value={record.workflowStatus} /></td>
                     <td>
-                      <Link to={`/admin/review/${record.id}`} className="button button-primary button-small">
+                      <Link to={`/admin/review/${record.id}`} className="button button-primary button-small" style={{ backgroundColor: '#002147' }}>
                         Review →
                       </Link>
                     </td>
@@ -1777,7 +2152,7 @@ function InstitutionReview({ institution, afterSave }) {
         {allowed.map((value) => <option key={value}>{value}</option>)}
       </select>
       <input className="input-control" style={{ padding: '4px 8px', fontSize: 12, width: 120 }} placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <button className="button button-primary button-small" onClick={submit} disabled={busy || !status}>
+      <button className="button button-primary button-small" style={{ backgroundColor: '#002147' }} onClick={submit} disabled={busy || !status}>
         {busy ? 'Saving…' : 'Save'}
       </button>
       {error && <small style={{ color: '#be123c', fontSize: 11 }}>{error}</small>}
@@ -1897,7 +2272,7 @@ function ReleaseDecision({ requestItem, onSaved }) {
         <option value="reject_request">Reject request</option>
       </select>
       <input className="input-control" style={{ padding: '4px 8px', fontSize: 12, width: 120 }} placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <button className="button button-primary button-small" onClick={submit} disabled={busy}>
+      <button className="button button-primary button-small" style={{ backgroundColor: '#002147' }} onClick={submit} disabled={busy}>
         {busy ? 'Saving…' : 'Save'}
       </button>
       {error && <small style={{ color: '#be123c', fontSize: 11 }}>{error}</small>}
@@ -2132,7 +2507,7 @@ function InstitutionProfilePage() {
               </div>
               {notice && <Notice tone="success">{notice}</Notice>}
               <div>
-                <button className="button button-primary" disabled={busy}>
+                <button className="button button-primary" style={{ backgroundColor: '#002147' }} disabled={busy}>
                   {busy ? 'Saving…' : 'Save profile'}
                 </button>
               </div>
