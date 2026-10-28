@@ -7,6 +7,12 @@ import {
   readDocumentStream,
   storeUploadedDocument,
 } from './document-storage.service.js';
+import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import {
+  detectFdrDuplicates,
+  sanitizeDuplicateCheckForUser,
+} from './duplicate-detection.service.js';
+import { scanDocumentForQrCode } from './bank-verification.service.js';
 
 export class FdrServiceError extends Error {
   constructor(status, message) {
@@ -63,6 +69,43 @@ export const serializeFdr = (fdr) => ({
   workflowStatus: fdr.workflowStatus,
   financialStatus: fdr.financialStatus,
   documentMetadata: sanitizeDocumentMetadata(fdr.documentMetadata),
+  trustScore: fdr.trustScore ? {
+    score: fdr.trustScore.score ?? null,
+    category: fdr.trustScore.category || null,
+    evidenceCoverage: fdr.trustScore.evidenceCoverage ?? 0,
+    version: fdr.trustScore.version || '1.0.0',
+    calculatedAt: fdr.trustScore.calculatedAt || null,
+    summary: fdr.trustScore.summary || null,
+    signals: fdr.trustScore.signals || [],
+    positiveFindings: fdr.trustScore.positiveFindings || [],
+    riskFindings: fdr.trustScore.riskFindings || [],
+    missingData: fdr.trustScore.missingData || [],
+    unavailableChecks: fdr.trustScore.unavailableChecks || [],
+  } : null,
+  bankVerification: fdr.bankVerification ? {
+    status: fdr.bankVerification.status || 'pending',
+    verificationReference: fdr.bankVerification.verificationReference || null,
+    qrCode: fdr.bankVerification.qrCode ? {
+      detected: Boolean(fdr.bankVerification.qrCode.detected),
+      candidateUrl: fdr.bankVerification.qrCode.candidateUrl || null,
+      extractedReference: fdr.bankVerification.qrCode.extractedReference || null,
+      isUntrustedDestination: Boolean(fdr.bankVerification.qrCode.isUntrustedDestination),
+      pageNumber: fdr.bankVerification.qrCode.pageNumber || 1,
+      location: fdr.bankVerification.qrCode.location || null,
+      inspectedAt: fdr.bankVerification.qrCode.inspectedAt || null,
+    } : null,
+    manualVerification: fdr.bankVerification.manualVerification || null,
+    checklist: fdr.bankVerification.checklist || [],
+  } : null,
+  duplicateCheck: fdr.duplicateCheck ? sanitizeDuplicateCheckForUser({
+    duplicateCheck: fdr.duplicateCheck,
+    user: null,
+    fdrInstitutionId: fdr.institution,
+  }) : null,
+  maturityEscalation: fdr.maturityEscalation ? {
+    currentStage: fdr.maturityEscalation.currentStage || 'not_due',
+    lastEscalatedAt: fdr.maturityEscalation.lastEscalatedAt || null,
+  } : null,
   createdAt: fdr.createdAt,
   updatedAt: fdr.updatedAt,
 });
@@ -89,6 +132,14 @@ export const createFdrRecord = async ({ user, payload, file }) => {
     throw new FdrServiceError(400, error.message || 'The uploaded document is invalid.');
   }
 
+  // Scan QR code in uploaded file buffer if feasible
+  let qrResult = null;
+  try {
+    qrResult = await scanDocumentForQrCode(file.buffer, documentInfo.mimeType);
+  } catch {
+    // Graceful QR inspection fallback
+  }
+
   let session;
   let createdFdr;
 
@@ -108,7 +159,50 @@ export const createFdrRecord = async ({ user, payload, file }) => {
           checksum: documentInfo.checksum,
           uploadedAt: documentInfo.uploadedAt,
         },
+        bankVerification: {
+          status: 'pending',
+          qrCode: {
+            detected: Boolean(qrResult?.detected),
+            decodedText: qrResult?.decodedText || null,
+            extractedReference: qrResult?.extractedReference || null,
+            candidateUrl: qrResult?.candidateUrl || null,
+            isUntrustedDestination: Boolean(qrResult?.isUntrustedDestination),
+            pageNumber: qrResult?.pageNumber || 1,
+            location: qrResult?.location || null,
+            inspectedAt: new Date(),
+          },
+        },
       });
+
+      // Duplicate check across existing repository
+      let duplicateResult = null;
+      try {
+        duplicateResult = await detectFdrDuplicates({ fdrId: record._id, fdrRecord: record });
+        record.duplicateCheck = duplicateResult;
+      } catch {
+        // safe fallback
+      }
+
+      // Initial Trust Score assessment
+      const trustScoreResult = calculateFdrTrustScore({
+        fdr: record,
+        forensicAnalysis: null,
+        duplicateResult,
+        bankVerification: record.bankVerification,
+        trigger: 'initial_creation',
+      });
+      record.trustScore = trustScoreResult;
+      record.trustScoreHistory = [
+        {
+          score: trustScoreResult.score,
+          category: trustScoreResult.category,
+          evidenceCoverage: trustScoreResult.evidenceCoverage,
+          version: trustScoreResult.version,
+          calculatedAt: trustScoreResult.calculatedAt,
+          summary: trustScoreResult.summary,
+          trigger: 'initial_creation',
+        },
+      ];
 
       await record.save({ session });
       await writeAuditEvent({
@@ -168,33 +262,35 @@ export const listFdrRecords = async ({ user, query }) => {
     filter.workflowStatus = query.workflowStatus;
   }
 
-  if (query.fromDate || query.toDate) {
-    filter.maturityDate = {};
-    if (query.fromDate) filter.maturityDate.$gte = query.fromDate;
-    if (query.toDate) filter.maturityDate.$lte = query.toDate;
-  }
+  const page = Math.max(1, query.page || 1);
+  const limit = Math.max(1, Math.min(query.limit || 10, 50));
+  const skip = (page - 1) * limit;
 
   const [total, records] = await Promise.all([
     FDR.countDocuments(filter),
     FDR.find(filter)
-      .sort({ createdAt: -1, _id: -1 })
-      .skip((query.page - 1) * query.limit)
-      .limit(query.limit),
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
   ]);
 
   return {
     fdrs: records.map(serializeFdr),
     pagination: {
-      page: query.page,
-      limit: query.limit,
+      page,
+      limit,
       total,
-      pages: Math.ceil(total / query.limit),
+      pages: Math.ceil(total / limit) || 1,
     },
   };
 };
 
 export const getFdrById = async ({ user, fdrId }) => {
-  const fdr = await FDR.findById(fdrId).select('+ocrResult.providerJobId');
+  if (!mongoose.isValidObjectId(fdrId)) {
+    throw new FdrServiceError(400, 'Invalid FDR ID.');
+  }
+
+  const fdr = await FDR.findById(fdrId);
   if (!fdr) {
     throw new FdrServiceError(404, 'FDR not found.');
   }
@@ -266,6 +362,45 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
         });
       }
 
+      // Recalculate duplicate check and trust score with updated fields
+      let duplicateResult = record.duplicateCheck;
+      if (mongoose.connection.readyState === 1) {
+        try {
+          duplicateResult = await detectFdrDuplicates({ fdrId: record._id, fdrRecord: record });
+          record.duplicateCheck = duplicateResult;
+        } catch {
+          // safe fallback
+        }
+      }
+
+      let latestForensic = null;
+      if (record.latestForensicAnalysis && mongoose.connection.readyState === 1) {
+        try {
+          latestForensic = await ForensicAnalysis.findById(record.latestForensicAnalysis).session(session);
+        } catch {
+          // safe fallback
+        }
+      }
+
+      const trustScoreResult = calculateFdrTrustScore({
+        fdr: record,
+        forensicAnalysis: latestForensic,
+        duplicateResult,
+        bankVerification: record.bankVerification || {},
+        trigger: 'fdr_updated',
+      });
+      record.trustScore = trustScoreResult;
+      record.trustScoreHistory = record.trustScoreHistory || [];
+      record.trustScoreHistory.push({
+        score: trustScoreResult.score,
+        category: trustScoreResult.category,
+        evidenceCoverage: trustScoreResult.evidenceCoverage,
+        version: trustScoreResult.version,
+        calculatedAt: trustScoreResult.calculatedAt,
+        summary: trustScoreResult.summary,
+        trigger: 'fdr_updated',
+      });
+
       await record.save({ session });
       await writeAuditEvent({
         actor: user._id,
@@ -276,6 +411,7 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
           institutionId,
           previousStatus,
           nextStatus: record.workflowStatus,
+          trustScore: trustScoreResult.score,
         },
       }).save({ session });
 

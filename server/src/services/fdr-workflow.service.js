@@ -7,6 +7,16 @@ import ReleaseRequest from '../models/ReleaseRequest.js';
 import User from '../models/User.js';
 import { deleteStoredDocument, storeUploadedDocument } from './document-storage.service.js';
 import { getFdrById, serializeFdr } from './fdr.service.js';
+import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import {
+  generateBankVerificationEmailDraft,
+  scanDocumentForQrCode,
+  STANDARD_VERIFICATION_CHECKLIST,
+} from './bank-verification.service.js';
+import {
+  detectFdrDuplicates,
+  sanitizeDuplicateCheckForUser,
+} from './duplicate-detection.service.js';
 
 const officialRoles = new Set(['aicte_admin', 'reviewer']);
 const institutionRoles = new Set(['institution_admin', 'institution_user']);
@@ -77,7 +87,7 @@ export const listFdrReviewQueue = async ({ user, query }) => {
   const [total, records] = await Promise.all([
     FDR.countDocuments(filter),
     FDR.find(filter)
-      .select('institution fdrNumber bankName branch amount currency issueDate maturityDate workflowStatus submittedAt createdAt')
+      .select('institution fdrNumber bankName branch amount currency issueDate maturityDate workflowStatus submittedAt createdAt trustScore bankVerification duplicateCheck')
       .populate('institution', 'name institutionCode')
       .sort({ createdAt: -1, _id: -1 })
       .skip((query.page - 1) * query.limit)
@@ -93,12 +103,19 @@ export const listFdrReviewQueue = async ({ user, query }) => {
             institutionCode: record.institution.institutionCode || null,
           }
         : null,
+      trustScore: record.trustScore ? {
+        score: record.trustScore.score,
+        category: record.trustScore.category,
+        evidenceCoverage: record.trustScore.evidenceCoverage,
+      } : null,
+      bankVerificationStatus: record.bankVerification?.status || 'pending',
+      duplicateStatus: record.duplicateCheck?.status || 'no_candidate_found',
     })),
     pagination: {
       page: query.page,
       limit: query.limit,
       total,
-      pages: Math.ceil(total / query.limit),
+      pages: Math.ceil(total / query.limit) || 1,
     },
   };
 };
@@ -133,6 +150,21 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
       : Promise.resolve([]),
   ]);
   const actorsById = new Map(reviewActors.map((actor) => [String(actor._id), actor]));
+
+  // Ensure standard checklist items exist
+  const existingChecklist = fdr.bankVerification?.checklist || [];
+  const checklistMap = new Map(existingChecklist.map((item) => [item.id, item]));
+  const completeChecklist = STANDARD_VERIFICATION_CHECKLIST.map((item) => {
+    const existing = checklistMap.get(item.id);
+    return {
+      id: item.id,
+      label: item.label,
+      completed: existing ? existing.completed : false,
+      completedAt: existing?.completedAt || null,
+      completedBy: existing?.completedBy || null,
+    };
+  });
+
   return {
     institution: institution && {
       id: String(institution._id),
@@ -161,14 +193,54 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
       },
       ocr: {
         status: fdr.ocrResult?.status || 'not_started',
+        requestedLanguage: fdr.ocrResult?.requestedLanguage || 'en-IN',
+        languageName: fdr.ocrResult?.languageName || 'English (India)',
         extractedFields: ['completed', 'partially_completed'].includes(fdr.ocrResult?.status)
           ? fdr.ocrResult.extractedData
           : null,
         comparisons: ['completed', 'partially_completed'].includes(fdr.ocrResult?.status)
           ? fdr.ocrResult.comparisonResults
           : null,
+        missingFields: fdr.ocrResult?.missingFields || [],
+        lowConfidenceFields: fdr.ocrResult?.lowConfidenceFields || [],
       },
       forensic: safeForensicSummary(forensic),
+      trustScore: fdr.trustScore ? {
+        score: fdr.trustScore.score,
+        category: fdr.trustScore.category,
+        evidenceCoverage: fdr.trustScore.evidenceCoverage,
+        version: fdr.trustScore.version,
+        calculatedAt: fdr.trustScore.calculatedAt,
+        summary: fdr.trustScore.summary,
+        signals: fdr.trustScore.signals || [],
+        positiveFindings: fdr.trustScore.positiveFindings || [],
+        riskFindings: fdr.trustScore.riskFindings || [],
+        missingData: fdr.trustScore.missingData || [],
+        unavailableChecks: fdr.trustScore.unavailableChecks || [],
+        history: fdr.trustScoreHistory || [],
+      } : null,
+      bankVerification: {
+        status: fdr.bankVerification?.status || 'pending',
+        verificationReference: fdr.bankVerification?.verificationReference || null,
+        qrCode: fdr.bankVerification?.qrCode || null,
+        manualVerification: fdr.bankVerification?.manualVerification || null,
+        checklist: completeChecklist,
+        history: fdr.bankVerification?.history || [],
+        emailDraft: generateBankVerificationEmailDraft({ fdr, institution, reviewer: user }),
+      },
+      duplicateCheck: fdr.duplicateCheck ? {
+        status: fdr.duplicateCheck.status || 'no_candidate_found',
+        checkedAt: fdr.duplicateCheck.checkedAt || null,
+        candidateCount: fdr.duplicateCheck.candidateCount || 0,
+        matches: fdr.duplicateCheck.matches || [],
+        resolution: fdr.duplicateCheck.resolution || { status: 'unreviewed' },
+        resolutionHistory: fdr.duplicateCheck.resolutionHistory || [],
+      } : null,
+      maturityEscalation: fdr.maturityEscalation ? {
+        currentStage: fdr.maturityEscalation.currentStage || 'not_due',
+        lastEscalatedAt: fdr.maturityEscalation.lastEscalatedAt || null,
+        escalationHistory: fdr.maturityEscalation.escalationHistory || [],
+      } : null,
       reviewerConfirmedDetails: fdr.reviewerConfirmedDetails || {},
       reviewHistory: (fdr.reviewHistory || []).map((entry) => {
         const actor = actorsById.get(String(entry.actor));
@@ -254,6 +326,200 @@ export const decideFdrReview = async ({ user, fdrId, decision, reason }) => {
   };
 };
 
+export const recordBankVerificationOutcome = async ({ user, fdrId, payload }) => {
+  requireOfficial(user);
+  const validStatuses = ['pending', 'verified_with_bank', 'unverifiable', 'verification_failed'];
+  if (!validStatuses.includes(payload.status)) {
+    throw new FdrWorkflowError(400, 'invalid_status', 'Invalid bank verification status.');
+  }
+  if (payload.status !== 'pending' && (!payload.evidenceSource || payload.evidenceSource.trim().length < 3)) {
+    throw new FdrWorkflowError(400, 'missing_evidence', 'A verifiable evidence source description is required.');
+  }
+
+  const timestamp = new Date();
+  await withSession(async (session) => {
+    const fdr = await FDR.findById(fdrId).session(session);
+    if (!fdr) throw new FdrWorkflowError(404, 'fdr_not_found', 'FDR not found.');
+
+    fdr.bankVerification.status = payload.status;
+    if (payload.verificationReference !== undefined) {
+      fdr.bankVerification.verificationReference = payload.verificationReference;
+    }
+    fdr.bankVerification.manualVerification = {
+      verifiedBy: user._id,
+      verifiedAt: timestamp,
+      evidenceSource: payload.evidenceSource || 'Reviewer manual verification',
+      contactMethod: payload.contactMethod || 'email',
+      branchContact: payload.branchContact || null,
+      notes: payload.notes || null,
+      externalReference: payload.externalReference || null,
+    };
+
+    if (Array.isArray(payload.checklist)) {
+      fdr.bankVerification.checklist = payload.checklist.map((item) => ({
+        id: item.id,
+        label: item.label,
+        completed: Boolean(item.completed),
+        completedAt: item.completed ? timestamp : null,
+        completedBy: item.completed ? user._id : null,
+      }));
+    }
+
+    fdr.bankVerification.history.push({
+      status: payload.status,
+      updatedBy: user._id,
+      updatedAt: timestamp,
+      evidenceSource: payload.evidenceSource || 'Status updated',
+      notes: payload.notes || null,
+    });
+
+    const latestForensic = fdr.latestForensicAnalysis
+      ? await ForensicAnalysis.findById(fdr.latestForensicAnalysis).session(session)
+      : null;
+
+    const trustScoreResult = calculateFdrTrustScore({
+      fdr,
+      forensicAnalysis: latestForensic,
+      duplicateResult: fdr.duplicateCheck,
+      bankVerification: fdr.bankVerification,
+      trigger: 'bank_verification_update',
+    });
+    fdr.trustScore = trustScoreResult;
+    fdr.trustScoreHistory.push({
+      score: trustScoreResult.score,
+      category: trustScoreResult.category,
+      evidenceCoverage: trustScoreResult.evidenceCoverage,
+      version: trustScoreResult.version,
+      calculatedAt: trustScoreResult.calculatedAt,
+      summary: trustScoreResult.summary,
+      trigger: 'bank_verification_update',
+    });
+
+    await fdr.save({ session });
+
+    await writeAudit({
+      actor: user._id,
+      action: 'fdr_bank_verification_updated',
+      entityId: fdr._id,
+      metadata: {
+        status: payload.status,
+        evidenceSource: payload.evidenceSource,
+        timestamp,
+      },
+    }).save({ session });
+  });
+
+  return getFdrReviewDetails({ user, fdrId });
+};
+
+export const recordDuplicateReviewOutcome = async ({ user, fdrId, payload }) => {
+  requireOfficial(user);
+  const validStatuses = ['confirmed_duplicate', 'legitimate_renewal_replacement', 'inconclusive'];
+  if (!validStatuses.includes(payload.status)) {
+    throw new FdrWorkflowError(400, 'invalid_status', 'Invalid duplicate resolution status.');
+  }
+  if (!payload.notes || payload.notes.trim().length < 5) {
+    throw new FdrWorkflowError(400, 'missing_notes', 'A review explanation of at least 5 characters is required.');
+  }
+
+  const timestamp = new Date();
+  await withSession(async (session) => {
+    const fdr = await FDR.findById(fdrId).session(session);
+    if (!fdr) throw new FdrWorkflowError(404, 'fdr_not_found', 'FDR not found.');
+
+    fdr.duplicateCheck.resolution = {
+      status: payload.status,
+      reviewer: user._id,
+      reviewedAt: timestamp,
+      notes: payload.notes,
+    };
+
+    fdr.duplicateCheck.resolutionHistory.push({
+      status: payload.status,
+      reviewer: user._id,
+      reviewedAt: timestamp,
+      notes: payload.notes,
+    });
+
+    const latestForensic = fdr.latestForensicAnalysis
+      ? await ForensicAnalysis.findById(fdr.latestForensicAnalysis).session(session)
+      : null;
+
+    const trustScoreResult = calculateFdrTrustScore({
+      fdr,
+      forensicAnalysis: latestForensic,
+      duplicateResult: fdr.duplicateCheck,
+      bankVerification: fdr.bankVerification,
+      trigger: 'duplicate_review_update',
+    });
+    fdr.trustScore = trustScoreResult;
+    fdr.trustScoreHistory.push({
+      score: trustScoreResult.score,
+      category: trustScoreResult.category,
+      evidenceCoverage: trustScoreResult.evidenceCoverage,
+      version: trustScoreResult.version,
+      calculatedAt: trustScoreResult.calculatedAt,
+      summary: trustScoreResult.summary,
+      trigger: 'duplicate_review_update',
+    });
+
+    await fdr.save({ session });
+
+    await writeAudit({
+      actor: user._id,
+      action: 'fdr_duplicate_reviewed',
+      entityId: fdr._id,
+      metadata: {
+        resolution: payload.status,
+        notes: payload.notes,
+        timestamp,
+      },
+    }).save({ session });
+  });
+
+  return getFdrReviewDetails({ user, fdrId });
+};
+
+export const recalculateFdrTrustScoreAction = async ({ user, fdrId }) => {
+  requireOfficial(user);
+  const fdr = await FDR.findById(fdrId);
+  if (!fdr) throw new FdrWorkflowError(404, 'fdr_not_found', 'FDR not found.');
+
+  const latestForensic = fdr.latestForensicAnalysis
+    ? await ForensicAnalysis.findById(fdr.latestForensicAnalysis)
+    : await ForensicAnalysis.findOne({ fdrId }).sort({ analyzedAt: -1 });
+
+  let duplicateResult = fdr.duplicateCheck;
+  try {
+    duplicateResult = await detectFdrDuplicates({ fdrId, fdrRecord: fdr });
+    fdr.duplicateCheck = duplicateResult;
+  } catch {
+    // safe fallback
+  }
+
+  const trustScoreResult = calculateFdrTrustScore({
+    fdr,
+    forensicAnalysis: latestForensic,
+    duplicateResult,
+    bankVerification: fdr.bankVerification,
+    trigger: 'manual_recalculate',
+  });
+
+  fdr.trustScore = trustScoreResult;
+  fdr.trustScoreHistory.push({
+    score: trustScoreResult.score,
+    category: trustScoreResult.category,
+    evidenceCoverage: trustScoreResult.evidenceCoverage,
+    version: trustScoreResult.version,
+    calculatedAt: trustScoreResult.calculatedAt,
+    summary: trustScoreResult.summary,
+    trigger: 'manual_recalculate',
+  });
+
+  await fdr.save();
+  return getFdrReviewDetails({ user, fdrId });
+};
+
 const cleanupStoredFile = async (storageKey) => {
   try {
     await deleteStoredDocument(storageKey);
@@ -278,10 +544,20 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
     throw new FdrWorkflowError(400, 'invalid_document', error.message || 'The replacement document is invalid.');
   }
 
+  let qrResult = null;
+  try {
+    qrResult = await scanDocumentForQrCode(file.buffer, document.mimeType);
+  } catch {
+    // safe fallback
+  }
+
   let replacement;
   try {
     await withSession(async (session) => {
-      const existing = await FDR.findOne({ replacesFdr: original._id, workflowStatus: { $in: ['submitted', 'under_review', 'review_completed', 'approved'] } }).session(session);
+      const existing = await FDR.findOne({
+        replacesFdr: original._id,
+        workflowStatus: { $in: ['submitted', 'under_review', 'review_completed', 'approved'] },
+      }).session(session);
       if (existing) {
         throw new FdrWorkflowError(409, 'replacement_exists', 'A replacement record already exists for this FDR.');
       }
@@ -299,7 +575,50 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
           checksum: document.checksum,
           uploadedAt: document.uploadedAt,
         },
+        bankVerification: {
+          status: 'pending',
+          qrCode: {
+            detected: Boolean(qrResult?.detected),
+            decodedText: qrResult?.decodedText || null,
+            extractedReference: qrResult?.extractedReference || null,
+            candidateUrl: qrResult?.candidateUrl || null,
+            isUntrustedDestination: Boolean(qrResult?.isUntrustedDestination),
+            pageNumber: qrResult?.pageNumber || 1,
+            location: qrResult?.location || null,
+            inspectedAt: new Date(),
+          },
+        },
       });
+
+      // Duplicate check (will correctly recognize authorized replacement)
+      let duplicateResult = null;
+      try {
+        duplicateResult = await detectFdrDuplicates({ fdrId: replacement._id, fdrRecord: replacement });
+        replacement.duplicateCheck = duplicateResult;
+      } catch {
+        // safe fallback
+      }
+
+      const trustScoreResult = calculateFdrTrustScore({
+        fdr: replacement,
+        forensicAnalysis: null,
+        duplicateResult,
+        bankVerification: replacement.bankVerification,
+        trigger: 'replacement_created',
+      });
+      replacement.trustScore = trustScoreResult;
+      replacement.trustScoreHistory = [
+        {
+          score: trustScoreResult.score,
+          category: trustScoreResult.category,
+          evidenceCoverage: trustScoreResult.evidenceCoverage,
+          version: trustScoreResult.version,
+          calculatedAt: trustScoreResult.calculatedAt,
+          summary: trustScoreResult.summary,
+          trigger: 'replacement_created',
+        },
+      ];
+
       await replacement.save({ session });
       await writeAudit({
         actor: user._id,

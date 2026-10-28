@@ -2,14 +2,22 @@ import mongoose from 'mongoose';
 import { PDFDocument } from 'pdf-lib';
 import AuditLog from '../models/AuditLog.js';
 import FDR from '../models/FDR.js';
+import ForensicAnalysis from '../models/ForensicAnalysis.js';
 import Institution from '../models/Institution.js';
 import { readStoredDocument, validateUploadBuffer } from './document-storage.service.js';
-import { SarvamOcrError, sarvamOcrService } from './sarvam-ocr.service.js';
+import {
+  SarvamOcrError,
+  sarvamOcrService,
+  SUPPORTED_OCR_LANGUAGES,
+} from './sarvam-ocr.service.js';
 import {
   compareFdrFields,
   parseExtractedFdrFields,
 } from '../utils/fdr-extraction.schema.js';
 import { getFdrById } from './fdr.service.js';
+import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import { detectFdrDuplicates } from './duplicate-detection.service.js';
+import { inspectFdrDocumentForQr } from './bank-verification.service.js';
 
 const activeStatuses = ['submitting', 'queued', 'processing', 'pending'];
 const terminalStatuses = ['completed', 'partially_completed', 'failed', 'rejected'];
@@ -53,7 +61,7 @@ const updateAndAudit = async ({ fdrId, filter, update, userId, action, metadata 
   withSession(async (session) => {
     const result = await FDR.updateOne(
       { _id: fdrId, ...filter },
-      { $set: update },
+      update,
       { session, runValidators: true },
     );
     if (result.matchedCount !== 1) {
@@ -74,8 +82,12 @@ const toPublicExtraction = (fdr) => {
   return {
     fdrId: String(fdr._id),
     status: result.status || 'not_started',
+    requestedLanguage: result.requestedLanguage || 'en-IN',
+    languageName: result.languageName || 'English (India)',
     extractedFields: hasResults ? result.extractedData : null,
     comparisons: hasResults ? result.comparisonResults : null,
+    missingFields: result.missingFields || [],
+    lowConfidenceFields: result.lowConfidenceFields || [],
     submittedAt: result.submittedAt || null,
     completedAt: result.completedAt || null,
     errorCode: ['failed', 'rejected'].includes(result.status) ? result.providerErrorCode : null,
@@ -148,10 +160,12 @@ const markRequestFailure = async ({ fdr, user, error }) => {
     fdrId: fdr._id,
     filter: { 'ocrResult.status': 'submitting' },
     update: {
-      'ocrResult.status': 'failed',
-      'ocrResult.completedAt': completedAt,
-      'ocrResult.processedAt': completedAt,
-      'ocrResult.providerErrorCode': safeError.errorCode,
+      $set: {
+        'ocrResult.status': 'failed',
+        'ocrResult.completedAt': completedAt,
+        'ocrResult.processedAt': completedAt,
+        'ocrResult.providerErrorCode': safeError.errorCode,
+      },
     },
     userId: user._id,
     action: 'fdr_ocr_failed',
@@ -171,11 +185,17 @@ const markRequestFailure = async ({ fdr, user, error }) => {
   throw safeError;
 };
 
-export const requestFdrExtraction = async ({ user, fdrId }) => {
+export const requestFdrExtraction = async ({ user, fdrId, language = 'en-IN' }) => {
   const fdr = await getFdrById({ user, fdrId });
   if (!['submitted', 'under_review', 'rejected'].includes(fdr.workflowStatus)) {
     throw new FdrExtractionError(409, 'invalid_workflow_state', 'This FDR is not in a state that can be analyzed.');
   }
+
+  const normalizedLanguage = (language || 'en-IN').trim();
+  if (!SUPPORTED_OCR_LANGUAGES[normalizedLanguage]) {
+    throw new FdrExtractionError(422, 'unsupported_language', `Language code "${language}" is not in the allowlist of supported regional languages.`);
+  }
+  const languageName = SUPPORTED_OCR_LANGUAGES[normalizedLanguage];
 
   const currentStatus = fdr.ocrResult?.status || 'not_started';
   if (activeStatuses.includes(currentStatus)) {
@@ -197,6 +217,8 @@ export const requestFdrExtraction = async ({ user, fdrId }) => {
         $set: {
           'ocrResult.status': 'submitting',
           'ocrResult.providerJobId': null,
+          'ocrResult.requestedLanguage': normalizedLanguage,
+          'ocrResult.languageName': languageName,
           'ocrResult.submittedAt': submittedAt,
           'ocrResult.completedAt': null,
           'ocrResult.processedAt': null,
@@ -214,6 +236,7 @@ export const requestFdrExtraction = async ({ user, fdrId }) => {
       entityId: fdr._id,
       metadata: {
         provider: 'sarvam',
+        language: normalizedLanguage,
         mimeType: storedDocument.mimeType,
         fileSize: storedDocument.document.length,
       },
@@ -223,6 +246,8 @@ export const requestFdrExtraction = async ({ user, fdrId }) => {
   Object.assign(fdr.ocrResult, {
     status: 'submitting',
     providerJobId: null,
+    requestedLanguage: normalizedLanguage,
+    languageName,
     submittedAt,
     completedAt: null,
     processedAt: null,
@@ -231,7 +256,10 @@ export const requestFdrExtraction = async ({ user, fdrId }) => {
 
   let providerJob;
   try {
-    providerJob = await sarvamOcrService.submitExtraction(storedDocument);
+    providerJob = await sarvamOcrService.submitExtraction({
+      ...storedDocument,
+      language: normalizedLanguage,
+    });
   } catch (error) {
     return markRequestFailure({ fdr, user, error });
   }
@@ -302,10 +330,12 @@ const persistProviderFailure = async ({ fdr, user, status, errorCode }) => {
       'ocrResult.status': { $in: activeStatuses },
     },
     update: {
-      'ocrResult.status': status,
-      'ocrResult.completedAt': completedAt,
-      'ocrResult.processedAt': completedAt,
-      'ocrResult.providerErrorCode': errorCode,
+      $set: {
+        'ocrResult.status': status,
+        'ocrResult.completedAt': completedAt,
+        'ocrResult.processedAt': completedAt,
+        'ocrResult.providerErrorCode': errorCode,
+      },
     },
     userId: user._id,
     action: 'fdr_ocr_failed',
@@ -339,6 +369,55 @@ const persistCompletedResults = async ({ fdr, user, status, extractedData }) => 
     extracted: extractedData,
     institutionName,
   });
+
+  const missingFields = Object.entries(extractedData)
+    .filter(([, val]) => val === null || val === undefined)
+    .map(([key]) => key);
+  const lowConfidenceFields = missingFields;
+
+  // Run QR check and duplicate check to feed complete signals to trust score
+  let qrCodeData = fdr.bankVerification?.qrCode;
+  if (!qrCodeData?.inspectedAt) {
+    try {
+      qrCodeData = await inspectFdrDocumentForQr({ fdr });
+    } catch {
+      // safe fallback
+    }
+  }
+
+  let duplicateResult = fdr.duplicateCheck;
+  if (mongoose.connection.readyState === 1) {
+    try {
+      duplicateResult = await detectFdrDuplicates({ fdrId: fdr._id, fdrRecord: fdr });
+    } catch {
+      // safe fallback
+    }
+  }
+
+  let latestForensic = null;
+  if (mongoose.connection.readyState === 1) {
+    try {
+      latestForensic = fdr.latestForensicAnalysis
+        ? await ForensicAnalysis.findById(fdr.latestForensicAnalysis)
+        : await ForensicAnalysis.findOne({ fdrId: fdr._id }).sort({ analyzedAt: -1 });
+    } catch {
+      // safe fallback
+    }
+  }
+
+  // Recalculate Trust Score with updated OCR signals
+  fdr.ocrResult.extractedData = extractedData;
+  fdr.ocrResult.comparisonResults = comparisonResults;
+  fdr.ocrResult.status = status;
+
+  const trustScoreResult = calculateFdrTrustScore({
+    fdr,
+    forensicAnalysis: latestForensic,
+    duplicateResult,
+    bankVerification: fdr.bankVerification,
+    trigger: 'ocr_completed',
+  });
+
   const completedAt = new Date();
   await updateAndAudit({
     fdrId: fdr._id,
@@ -347,28 +426,57 @@ const persistCompletedResults = async ({ fdr, user, status, extractedData }) => 
       'ocrResult.status': { $in: activeStatuses },
     },
     update: {
-      'ocrResult.status': status,
-      'ocrResult.extractedData': extractedData,
-      'ocrResult.comparisonResults': comparisonResults,
-      'ocrResult.completedAt': completedAt,
-      'ocrResult.processedAt': completedAt,
-      'ocrResult.providerErrorCode': null,
+      $set: {
+        'ocrResult.status': status,
+        'ocrResult.extractedData': extractedData,
+        'ocrResult.comparisonResults': comparisonResults,
+        'ocrResult.missingFields': missingFields,
+        'ocrResult.lowConfidenceFields': lowConfidenceFields,
+        'ocrResult.completedAt': completedAt,
+        'ocrResult.processedAt': completedAt,
+        'ocrResult.providerErrorCode': null,
+        'duplicateCheck': duplicateResult,
+        ...(qrCodeData ? { 'bankVerification.qrCode': qrCodeData } : {}),
+        'trustScore': trustScoreResult,
+      },
+      $push: {
+        trustScoreHistory: {
+          score: trustScoreResult.score,
+          category: trustScoreResult.category,
+          evidenceCoverage: trustScoreResult.evidenceCoverage,
+          version: trustScoreResult.version,
+          calculatedAt: trustScoreResult.calculatedAt,
+          summary: trustScoreResult.summary,
+          trigger: 'ocr_completed',
+        },
+      },
     },
     userId: user._id,
     action: 'fdr_ocr_completed',
     metadata: {
       status,
+      language: fdr.ocrResult?.requestedLanguage || 'en-IN',
       extractedFieldCount: Object.values(extractedData).filter((value) => value !== null).length,
+      trustScore: trustScoreResult.score,
     },
   });
+
   Object.assign(fdr.ocrResult, {
     status,
     extractedData,
     comparisonResults,
+    missingFields,
+    lowConfidenceFields,
     completedAt,
     processedAt: completedAt,
     providerErrorCode: null,
   });
+  fdr.trustScore = trustScoreResult;
+  if (duplicateResult) fdr.duplicateCheck = duplicateResult;
+  if (qrCodeData) {
+    fdr.bankVerification = fdr.bankVerification || {};
+    fdr.bankVerification.qrCode = qrCodeData;
+  }
 };
 
 export const getFdrExtraction = async ({ user, fdrId }) => {

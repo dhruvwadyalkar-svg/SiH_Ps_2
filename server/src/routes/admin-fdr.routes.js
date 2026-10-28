@@ -3,6 +3,7 @@ import {
   adminDashboardSummaryController,
   adminFdrReportController,
   adminFdrReportExportController,
+  adminRiskBoardController,
 } from '../controllers/phase9-dashboard.controller.js';
 import {
   decideFdrReviewController,
@@ -11,6 +12,9 @@ import {
   getReleaseRequestController,
   getFdrReviewQueueController,
   listReleaseRequestsController,
+  recalculateTrustScoreController,
+  recordBankVerificationController,
+  recordDuplicateReviewController,
 } from '../controllers/fdr-workflow.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
@@ -20,11 +24,16 @@ const router = Router();
 router.use(authenticate);
 router.use(authorizeRoles('aicte_admin', 'reviewer'));
 router.get('/dashboard/summary', adminDashboardSummaryController);
+router.get('/dashboard/risk-board', adminRiskBoardController);
 router.get('/reports/fdrs/export', adminFdrReportExportController);
 router.get('/reports/fdrs', adminFdrReportController);
 router.get('/fdrs/review-queue', getFdrReviewQueueController);
+router.get('/fdrs/risk-board', adminRiskBoardController);
 router.get('/fdrs/:id/review', getFdrReviewDetailsController);
 router.post('/fdrs/:id/review', decideFdrReviewController);
+router.post('/fdrs/:id/bank-verification', recordBankVerificationController);
+router.post('/fdrs/:id/duplicate-review', recordDuplicateReviewController);
+router.post('/fdrs/:id/trust-score/recalculate', recalculateTrustScoreController);
 router.get('/release-requests', listReleaseRequestsController);
 router.get('/release-requests/:requestId', getReleaseRequestController);
 router.post('/release-requests/:requestId/decision', decideReleaseRequestController);

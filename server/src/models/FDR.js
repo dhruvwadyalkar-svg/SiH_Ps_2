@@ -97,6 +97,26 @@ const ocrResultSchema = new mongoose.Schema(
       max: 1,
       default: null,
     },
+    requestedLanguage: {
+      type: String,
+      default: 'en-IN',
+    },
+    languageName: {
+      type: String,
+      default: 'English (India)',
+    },
+    providerMetadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    lowConfidenceFields: {
+      type: [String],
+      default: [],
+    },
+    missingFields: {
+      type: [String],
+      default: [],
+    },
     processedAt: {
       type: Date,
       default: null,
@@ -164,6 +184,230 @@ const reviewDecisionSchema = new mongoose.Schema(
     timestamp: { type: Date, required: true, default: Date.now },
   },
   { _id: true },
+);
+
+const trustScoreSignalSchema = new mongoose.Schema(
+  {
+    category: { type: String, required: true },
+    label: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ['passed', 'warning', 'failed', 'not_assessed', 'missing_data'],
+      required: true,
+    },
+    score: { type: Number, required: true, default: 0 },
+    maxScore: { type: Number, required: true, default: 0 },
+    impact: { type: String, enum: ['positive', 'negative', 'neutral'], required: true },
+    details: { type: String, required: true },
+    sourceReference: { type: String, default: null },
+  },
+  { _id: false },
+);
+
+const trustScoreHistorySchema = new mongoose.Schema(
+  {
+    score: { type: Number, required: true },
+    category: { type: String, required: true },
+    evidenceCoverage: { type: Number, required: true },
+    version: { type: String, required: true },
+    calculatedAt: { type: Date, required: true, default: Date.now },
+    summary: { type: String, required: true },
+    trigger: { type: String, required: true },
+  },
+  { _id: true },
+);
+
+const trustScoreSchema = new mongoose.Schema(
+  {
+    score: { type: Number, min: 0, max: 100, default: null },
+    category: {
+      type: String,
+      enum: [
+        'low_observed_risk',
+        'review_recommended',
+        'high_review_priority',
+        'insufficient_evidence',
+        null,
+      ],
+      default: null,
+    },
+    evidenceCoverage: { type: Number, min: 0, max: 100, default: 0 },
+    version: { type: String, default: '1.0.0' },
+    calculatedAt: { type: Date, default: null },
+    signals: { type: [trustScoreSignalSchema], default: [] },
+    positiveFindings: { type: [String], default: [] },
+    riskFindings: { type: [String], default: [] },
+    missingData: { type: [String], default: [] },
+    unavailableChecks: { type: [String], default: [] },
+    summary: { type: String, default: null },
+  },
+  { _id: false },
+);
+
+const qrCodeMetadataSchema = new mongoose.Schema(
+  {
+    detected: { type: Boolean, default: false },
+    decodedText: { type: String, default: null },
+    extractedReference: { type: String, default: null },
+    candidateUrl: { type: String, default: null },
+    isUntrustedDestination: { type: Boolean, default: false },
+    pageNumber: { type: Number, default: 1 },
+    location: { type: String, default: null },
+    inspectedAt: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const verificationChecklistItemSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+    completedAt: { type: Date, default: null },
+    completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  },
+  { _id: false },
+);
+
+const bankVerificationHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['pending', 'verified_with_bank', 'unverifiable', 'verification_failed'],
+      required: true,
+    },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    updatedAt: { type: Date, required: true, default: Date.now },
+    evidenceSource: { type: String, required: true },
+    notes: { type: String, default: null },
+  },
+  { _id: true },
+);
+
+const bankVerificationSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['pending', 'verified_with_bank', 'unverifiable', 'verification_failed'],
+      default: 'pending',
+    },
+    verificationReference: { type: String, default: null },
+    qrCode: { type: qrCodeMetadataSchema, default: () => ({}) },
+    manualVerification: {
+      verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      verifiedAt: { type: Date, default: null },
+      evidenceSource: { type: String, default: null },
+      contactMethod: {
+        type: String,
+        enum: ['email', 'official_portal', 'branch_visit', 'phone', 'other', null],
+        default: null,
+      },
+      branchContact: { type: String, default: null },
+      notes: { type: String, default: null },
+      externalReference: { type: String, default: null },
+    },
+    checklist: { type: [verificationChecklistItemSchema], default: [] },
+    history: { type: [bankVerificationHistorySchema], default: [] },
+  },
+  { _id: false },
+);
+
+const duplicateMatchSchema = new mongoose.Schema(
+  {
+    matchedFdr: { type: mongoose.Schema.Types.ObjectId, ref: 'FDR', required: true },
+    institution: { type: mongoose.Schema.Types.ObjectId, ref: 'Institution', required: true },
+    institutionName: { type: String, default: null },
+    fdrNumber: { type: String, required: true },
+    bankName: { type: String, required: true },
+    matchType: {
+      type: String,
+      enum: [
+        'exact_document_match',
+        'same_instrument_reference',
+        'probable_metadata_duplicate',
+        'possible_reuse',
+      ],
+      required: true,
+    },
+    similarityScore: { type: Number, default: 0 },
+    reasons: { type: [String], default: [] },
+    isAuthorizedReplacement: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
+const duplicateResolutionSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['unreviewed', 'confirmed_duplicate', 'legitimate_renewal_replacement', 'inconclusive'],
+      default: 'unreviewed',
+    },
+    reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewedAt: { type: Date, default: null },
+    notes: { type: String, default: null },
+  },
+  { _id: false },
+);
+
+const duplicateResolutionHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['unreviewed', 'confirmed_duplicate', 'legitimate_renewal_replacement', 'inconclusive'],
+      required: true,
+    },
+    reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    reviewedAt: { type: Date, required: true, default: Date.now },
+    notes: { type: String, default: null },
+  },
+  { _id: true },
+);
+
+const duplicateCheckSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: [
+        'no_candidate_found',
+        'exact_document_match',
+        'same_instrument_reference',
+        'probable_metadata_duplicate',
+        'possible_reuse',
+      ],
+      default: 'no_candidate_found',
+    },
+    checkedAt: { type: Date, default: null },
+    candidateCount: { type: Number, default: 0 },
+    matches: { type: [duplicateMatchSchema], default: [] },
+    resolution: { type: duplicateResolutionSchema, default: () => ({ status: 'unreviewed' }) },
+    resolutionHistory: { type: [duplicateResolutionHistorySchema], default: [] },
+  },
+  { _id: false },
+);
+
+const maturityEscalationHistorySchema = new mongoose.Schema(
+  {
+    stage: { type: String, required: true },
+    escalatedAt: { type: Date, required: true, default: Date.now },
+    recipientsCount: { type: Number, default: 0 },
+    channels: { type: [String], default: [] },
+    summary: { type: String, default: null },
+  },
+  { _id: true },
+);
+
+const maturityEscalationSchema = new mongoose.Schema(
+  {
+    currentStage: {
+      type: String,
+      enum: ['not_due', '90d', '30d', '7d', 'overdue', 'completed'],
+      default: 'not_due',
+    },
+    lastEscalatedAt: { type: Date, default: null },
+    escalationHistory: { type: [maturityEscalationHistorySchema], default: [] },
+  },
+  { _id: false },
 );
 
 const fdrSchema = new mongoose.Schema(
@@ -264,6 +508,26 @@ const fdrSchema = new mongoose.Schema(
       type: verificationResultSchema,
       default: {},
     },
+    trustScore: {
+      type: trustScoreSchema,
+      default: () => ({}),
+    },
+    trustScoreHistory: {
+      type: [trustScoreHistorySchema],
+      default: [],
+    },
+    bankVerification: {
+      type: bankVerificationSchema,
+      default: () => ({ status: 'pending' }),
+    },
+    duplicateCheck: {
+      type: duplicateCheckSchema,
+      default: () => ({ status: 'no_candidate_found' }),
+    },
+    maturityEscalation: {
+      type: maturityEscalationSchema,
+      default: () => ({ currentStage: 'not_due' }),
+    },
     reviewer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -287,6 +551,10 @@ fdrSchema.index(
   { replacesFdr: 1 },
   { unique: true, partialFilterExpression: { replacesFdr: { $type: 'objectId' } } },
 );
+fdrSchema.index({ 'bankVerification.status': 1 });
+fdrSchema.index({ 'duplicateCheck.status': 1 });
+fdrSchema.index({ 'documentMetadata.checksum': 1 });
+fdrSchema.index({ 'trustScore.category': 1 });
 
 fdrSchema.path('maturityDate').validate(function validateMaturityDate(value) {
   if (!this.issueDate || !value) {

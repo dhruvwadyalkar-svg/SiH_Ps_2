@@ -2,6 +2,32 @@ import { createHash } from 'node:crypto';
 import { SarvamAIClient } from 'sarvamai';
 import { fdrExtractionSchemaJson } from '../utils/fdr-extraction.schema.js';
 
+export const SUPPORTED_OCR_LANGUAGES = {
+  'en-IN': 'English (India)',
+  'hi-IN': 'Hindi',
+  'bn-IN': 'Bengali',
+  'gu-IN': 'Gujarati',
+  'kn-IN': 'Kannada',
+  'ml-IN': 'Malayalam',
+  'mr-IN': 'Marathi',
+  'or-IN': 'Odia',
+  'pa-IN': 'Punjabi',
+  'ta-IN': 'Tamil',
+  'te-IN': 'Telugu',
+  'ur-IN': 'Urdu',
+  'as-IN': 'Assamese',
+  'bodo-IN': 'Bodo',
+  'doi-IN': 'Dogri',
+  'ks-IN': 'Kashmiri',
+  'kok-IN': 'Konkani',
+  'mai-IN': 'Maithili',
+  'mni-IN': 'Manipuri',
+  'ne-IN': 'Nepali',
+  'sa-IN': 'Sanskrit',
+  'sat-IN': 'Santali',
+  'sd-IN': 'Sindhi',
+};
+
 const apiBaseUrl = 'https://api.sarvam.ai/doc-ai/v1/job';
 const requestTimeoutMs = 30_000;
 const maxExtractAttempts = 3;
@@ -69,11 +95,11 @@ const providerErrorForException = (error) => {
   return new SarvamOcrError('provider_unavailable', 503, 'OCR provider is temporarily unavailable.');
 };
 
-const createExtractRequest = ({ document, fileName, mimeType }) => {
+const createExtractRequest = ({ document, fileName, mimeType, language = 'en-IN' }) => {
   const formData = new FormData();
   formData.append('file', new Blob([document], { type: mimeType }), fileName);
   formData.append('schema', fdrExtractionSchemaJson);
-  formData.append('language', 'en-IN');
+  formData.append('language', language);
   formData.append('output_format', 'json');
   return formData;
 };
@@ -97,9 +123,13 @@ const parseJobResponse = (value) => {
   return { jobId: value.job_id, status };
 };
 
-const submitExtraction = async ({ document, fileName, mimeType }) => {
+const submitExtraction = async ({ document, fileName, mimeType, language = 'en-IN' }) => {
   if (isDeterministicTestProviderEnabled()) {
-    const digest = createHash('sha256').update(document).digest('hex').slice(0, 24);
+    const digest = createHash('sha256')
+      .update(document)
+      .update(language)
+      .digest('hex')
+      .slice(0, 24);
     return { jobId: `${testJobPrefix}${digest}`, status: 'queued' };
   }
 
@@ -111,7 +141,7 @@ const submitExtraction = async ({ document, fileName, mimeType }) => {
       const response = await fetch(`${apiBaseUrl}/extract`, {
         method: 'POST',
         headers: { 'api-subscription-key': apiKey },
-        body: createExtractRequest({ document, fileName, mimeType }),
+        body: createExtractRequest({ document, fileName, mimeType, language }),
         signal: AbortSignal.timeout(requestTimeoutMs),
       });
 
@@ -209,6 +239,7 @@ const getJobResults = async (jobId) => {
 };
 
 export const sarvamOcrService = {
+  SUPPORTED_OCR_LANGUAGES,
   submitExtraction,
   getJobStatus,
   getJobResults,

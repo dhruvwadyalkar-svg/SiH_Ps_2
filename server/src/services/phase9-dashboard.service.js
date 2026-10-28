@@ -98,92 +98,106 @@ const getDateWindow = (now) => {
   return { today, upcomingEnd };
 };
 
+const getUnreadNotificationCount = async (userId) =>
+  Notification.countDocuments({ recipient: userId, readAt: null });
+
 export const getInstitutionDashboardSummary = async ({ user, now = new Date() }) => {
-  if (!institutionRoles.has(user?.role)) throw new DashboardServiceError(403, 'Institution access is required.');
+  if (!institutionRoles.has(user?.role)) {
+    throw new DashboardServiceError(403, 'Only institution users may access the institution dashboard.');
+  }
   const institutionId = getInstitutionId(user);
-  if (!institutionId) throw new DashboardServiceError(404, 'No institution is associated with this user.');
+  if (!institutionId) {
+    throw new DashboardServiceError(404, 'No institution is associated with this user.');
+  }
+
   const { today, upcomingEnd } = getDateWindow(now);
-  const [fdrs, activeReleaseRequests, unreadNotifications] = await Promise.all([
+  const [fdrCounts, activeReleaseRequests, unreadNotifications] = await Promise.all([
     getFdrDashboardCounts({ institutionId, today, upcomingEnd }),
     ReleaseRequest.countDocuments({ institution: institutionId, active: true }),
-    Notification.countDocuments({ recipient: user._id, readAt: null }),
+    getUnreadNotificationCount(user._id),
   ]);
+
   return {
-    period: { upcomingMaturityDays: 30, asOfDate: dateOnlyKey(now) },
-    ...fdrs,
+    role: user.role,
+    institutionId,
+    period: { asOfDate: now, timezone: 'Asia/Kolkata' },
     activeReleaseRequests,
     unreadNotifications,
+    ...fdrCounts,
   };
 };
 
 export const getAdminDashboardSummary = async ({ user, now = new Date() }) => {
-  if (!officialRoles.has(user?.role)) throw new DashboardServiceError(403, 'Only authorized AICTE officials may access this summary.');
+  if (!officialRoles.has(user?.role)) {
+    throw new DashboardServiceError(403, 'Only authorized AICTE officials may access the admin dashboard.');
+  }
+
   const { today, upcomingEnd } = getDateWindow(now);
-  const since = new Date(now);
-  since.setUTCDate(since.getUTCDate() - 30);
-  const [totalInstitutions, fdrs, activeReleaseRequests, recentWorkload, unreadNotifications] = await Promise.all([
+  const [totalInstitutions, fdrCounts, totalPendingReleaseRequests, unreadNotifications, workloadAgg] = await Promise.all([
     Institution.countDocuments({}),
     getFdrDashboardCounts({ today, upcomingEnd }),
-    ReleaseRequest.countDocuments({ active: true }),
+    ReleaseRequest.countDocuments({ status: 'submitted', active: true }),
+    getUnreadNotificationCount(user._id),
     AuditLog.aggregate([
-      { $match: { entityType: 'FDR', createdAt: { $gte: since } } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'actor',
-          foreignField: '_id',
-          as: 'actorRecord',
-        },
-      },
-      { $unwind: '$actorRecord' },
-      { $match: { 'actorRecord.role': { $in: [...officialRoles] } } },
+      { $match: { createdAt: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } } },
       { $group: { _id: '$action', count: { $sum: 1 } } },
     ]),
-    Notification.countDocuments({ recipient: user._id, readAt: null }),
   ]);
+
+  const recentAdministrativeWorkload = Object.fromEntries(
+    (workloadAgg || []).map((item) => [item._id, item.count]),
+  );
+
   return {
-    period: { upcomingMaturityDays: 30, recentAdministrativeWorkloadDays: 30, asOfDate: dateOnlyKey(now) },
+    role: user.role,
+    period: { asOfDate: now, timezone: 'Asia/Kolkata' },
     totalInstitutions,
-    ...fdrs,
-    activeReleaseRequests,
+    totalPendingReleaseRequests,
+    recentAdministrativeWorkload,
     unreadNotifications,
-    recentAdministrativeWorkload: Object.fromEntries(recentWorkload.map(({ _id, count }) => [_id, count])),
+    ...fdrCounts,
   };
 };
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const makeReportFilter = async (query) => {
-  const filter = {};
+const makeReportFilter = async (query = {}) => {
+  const filter = {
+    workflowStatus: currentWorkflowStatusMatch,
+    financialStatus: currentFinancialStatusMatch,
+  };
+
   if (query.workflowStatus) filter.workflowStatus = query.workflowStatus;
-  if (query.institutionId) filter.institution = query.institutionId;
-  if (query.maturityFrom || query.maturityTo) {
-    filter.maturityDate = {};
-    if (query.maturityFrom) filter.maturityDate.$gte = new Date(`${query.maturityFrom}T00:00:00.000Z`);
-    if (query.maturityTo) filter.maturityDate.$lte = new Date(`${query.maturityTo}T23:59:59.999Z`);
+  if (query.financialStatus) filter.financialStatus = query.financialStatus;
+
+  if (query.maturityRange) {
+    const [start, end] = query.maturityRange.split('..');
+    const range = {};
+    if (start) range.$gte = new Date(`${start}T00:00:00.000Z`);
+    if (end) range.$lte = new Date(`${end}T23:59:59.999Z`);
+    if (Object.keys(range).length > 0) filter.maturityDate = range;
   }
+
   if (query.search) {
-    const pattern = new RegExp(escapeRegex(query.search), 'i');
-    const matches = await Institution.find({
-      $or: [{ name: pattern }, { institutionCode: pattern }],
-    }).select('_id').limit(5000);
+    const searchPattern = new RegExp(escapeRegex(query.search), 'i');
+    const matchedInstitutions = await Institution.find({
+      $or: [{ name: searchPattern }, { institutionCode: searchPattern }],
+    }).select('_id');
+    const institutionIds = matchedInstitutions.map(({ _id }) => _id);
+
     filter.$or = [
-      { fdrNumber: pattern },
-      { institution: { $in: matches.map(({ _id }) => _id) } },
+      { fdrNumber: searchPattern },
+      { bankName: searchPattern },
+      { branch: searchPattern },
+      ...(institutionIds.length ? [{ institution: { $in: institutionIds } }] : []),
     ];
   }
+
   return filter;
 };
 
 const safeReportRecord = (record) => ({
   id: String(record._id),
-  institution: record.institution
-    ? {
-        id: String(record.institution._id || record.institution),
-        name: record.institution.name || null,
-        institutionCode: record.institution.institutionCode || null,
-      }
-    : null,
   fdrNumber: record.fdrNumber,
   bankName: record.bankName,
   branch: record.branch,
@@ -194,7 +208,13 @@ const safeReportRecord = (record) => ({
   workflowStatus: record.workflowStatus,
   financialStatus: record.financialStatus,
   replacesFdr: record.replacesFdr ? String(record.replacesFdr) : null,
-  createdAt: record.createdAt,
+  institution: record.institution
+    ? {
+        id: String(record.institution._id || record.institution),
+        name: record.institution.name || null,
+        institutionCode: record.institution.institutionCode || null,
+      }
+    : null,
 });
 
 const queryReportRecords = async ({ query, limit, skip = 0 }) => {
@@ -262,4 +282,117 @@ export const exportAdminFdrReport = async ({ user, query }) => {
     metadata: { rowCount: records.length, exportLimit: ADMIN_EXPORT_MAX_ROWS },
   }).save();
   return { csv, rowCount: records.length };
+};
+
+export const listAdminRiskBoard = async ({ user, query = {} }) => {
+  if (!officialRoles.has(user?.role)) {
+    throw new DashboardServiceError(403, 'Only authorized AICTE officials may access the risk board.');
+  }
+
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+  const riskFilter = (query.riskFilter || 'all').toLowerCase();
+
+  const now = new Date();
+  const todayKey = dateOnlyKey(now);
+  const today = new Date(`${todayKey}T00:00:00.000Z`);
+
+  const sevenDaysFromNow = new Date(today);
+  sevenDaysFromNow.setUTCDate(sevenDaysFromNow.getUTCDate() + 7);
+  sevenDaysFromNow.setUTCHours(23, 59, 59, 999);
+
+  const ninetyDaysFromNow = new Date(today);
+  ninetyDaysFromNow.setUTCDate(ninetyDaysFromNow.getUTCDate() + 90);
+  ninetyDaysFromNow.setUTCHours(23, 59, 59, 999);
+
+  const baseFilter = {
+    workflowStatus: currentWorkflowStatusMatch,
+    financialStatus: currentFinancialStatusMatch,
+  };
+
+  if (riskFilter === 'overdue') {
+    baseFilter.maturityDate = { $lt: today };
+  } else if (riskFilter === 'due') {
+    baseFilter.maturityDate = { $gte: today, $lte: sevenDaysFromNow };
+  } else if (riskFilter === 'upcoming') {
+    const eightDaysFromNow = new Date(today);
+    eightDaysFromNow.setUTCDate(eightDaysFromNow.getUTCDate() + 8);
+    baseFilter.maturityDate = { $gte: eightDaysFromNow, $lte: ninetyDaysFromNow };
+  } else {
+    // all risk-eligible
+    baseFilter.maturityDate = { $lte: ninetyDaysFromNow };
+  }
+
+  if (query.search) {
+    const searchPattern = new RegExp(escapeRegex(query.search), 'i');
+    const matchedInstitutions = await Institution.find({
+      $or: [{ name: searchPattern }, { institutionCode: searchPattern }],
+    }).select('_id');
+    const institutionIds = matchedInstitutions.map(({ _id }) => _id);
+
+    baseFilter.$or = [
+      { fdrNumber: searchPattern },
+      { bankName: searchPattern },
+      ...(institutionIds.length ? [{ institution: { $in: institutionIds } }] : []),
+    ];
+  }
+
+  const [total, records] = await Promise.all([
+    FDR.countDocuments(baseFilter),
+    FDR.find(baseFilter)
+      .select('institution fdrNumber bankName branch amount currency issueDate maturityDate workflowStatus financialStatus trustScore bankVerification duplicateCheck maturityEscalation createdAt')
+      .populate('institution', 'name institutionCode')
+      .sort({ maturityDate: 1, _id: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+  ]);
+
+  const items = records.map((record) => {
+    const maturityKey = dateOnlyKey(record.maturityDate);
+    const daysRemaining = Math.round((new Date(record.maturityDate) - now) / (24 * 60 * 60 * 1000));
+    let stageTag = 'upcoming';
+    if (daysRemaining < 0) stageTag = 'overdue';
+    else if (daysRemaining <= 7) stageTag = 'due';
+
+    return {
+      id: String(record._id),
+      fdrNumber: record.fdrNumber,
+      bankName: record.bankName,
+      branch: record.branch,
+      amount: record.amount,
+      currency: record.currency,
+      issueDate: record.issueDate,
+      maturityDate: record.maturityDate,
+      maturityKey,
+      daysRemaining,
+      stageTag,
+      workflowStatus: record.workflowStatus,
+      financialStatus: record.financialStatus,
+      institution: record.institution
+        ? {
+            id: String(record.institution._id || record.institution),
+            name: record.institution.name,
+            institutionCode: record.institution.institutionCode,
+          }
+        : null,
+      trustScore: record.trustScore ? {
+        score: record.trustScore.score,
+        category: record.trustScore.category,
+        evidenceCoverage: record.trustScore.evidenceCoverage,
+      } : null,
+      bankVerificationStatus: record.bankVerification?.status || 'pending',
+      duplicateStatus: record.duplicateCheck?.status || 'no_candidate_found',
+    };
+  });
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+    filter: riskFilter,
+  };
 };

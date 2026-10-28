@@ -4,6 +4,7 @@ import {
   getAdminDashboardSummary,
   getInstitutionDashboardSummary,
   listAdminFdrReport,
+  listAdminRiskBoard,
 } from '../services/phase9-dashboard.service.js';
 import {
   reportExportQuerySchema,
@@ -68,9 +69,20 @@ export const adminFdrReportExportController = async (request, response, next) =>
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': 'attachment; filename="fdr-management-report.csv"',
       'Cache-Control': 'no-store',
-      'X-Report-Row-Count': String(rowCount),
     });
     return response.status(200).send(csv);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
+export const adminRiskBoardController = async (request, response, next) => {
+  try {
+    return response.status(200).json(await listAdminRiskBoard({
+      user: request.user,
+      query: request.query,
+    }));
   } catch (error) {
     if (handleError(response, error)) return;
     return next(error);

@@ -6,6 +6,9 @@ import ForensicAnalysis from '../models/ForensicAnalysis.js';
 import FDR from '../models/FDR.js';
 import { readStoredDocument, validateUploadBuffer } from './document-storage.service.js';
 import { getFdrById } from './fdr.service.js';
+import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import { detectFdrDuplicates } from './duplicate-detection.service.js';
+import { inspectFdrDocumentForQr } from './bank-verification.service.js';
 
 const analysisVersion = '1.0.0';
 const analysisEngine = 'local-document-forensics';
@@ -395,12 +398,43 @@ const auditForensics = ({ actor, action, entityId, analysisId, metadata }) =>
     metadata: { analysisId: String(analysisId), ...metadata },
   });
 
-const persistReportAndAudit = async ({ fdrId, report, actor, action, metadata }) =>
+const persistReportAndAudit = async ({
+  fdrId,
+  report,
+  actor,
+  action,
+  metadata,
+  trustScoreResult = null,
+  duplicateResult = null,
+  qrData = null,
+}) =>
   withSession(async (session) => {
     await report.save({ session });
+    const updateOps = {
+      $set: {
+        latestForensicAnalysis: report._id,
+        ...(trustScoreResult ? { trustScore: trustScoreResult } : {}),
+        ...(duplicateResult ? { duplicateCheck: duplicateResult } : {}),
+        ...(qrData ? { 'bankVerification.qrCode': qrData } : {}),
+      },
+    };
+    if (trustScoreResult) {
+      updateOps.$push = {
+        trustScoreHistory: {
+          score: trustScoreResult.score,
+          category: trustScoreResult.category,
+          evidenceCoverage: trustScoreResult.evidenceCoverage,
+          version: trustScoreResult.version,
+          calculatedAt: trustScoreResult.calculatedAt,
+          summary: trustScoreResult.summary,
+          trigger: 'forensic_update',
+        },
+      };
+    }
+
     const result = await FDR.updateOne(
       { _id: fdrId },
-      { $set: { latestForensicAnalysis: report._id } },
+      updateOps,
       { session, runValidators: true },
     );
     if (result.matchedCount !== 1) {
@@ -450,6 +484,33 @@ export const runFdrForensics = async ({ user, fdrId }) => {
 
   try {
     const { report } = await analyzeStoredFdrDocument({ user, fdrId, analysisId });
+
+    let qrData = fdr.bankVerification?.qrCode;
+    if (!qrData?.inspectedAt) {
+      try {
+        qrData = await inspectFdrDocumentForQr({ fdr });
+      } catch {
+        // safe fallback
+      }
+    }
+
+    let duplicateResult = fdr.duplicateCheck;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        duplicateResult = await detectFdrDuplicates({ fdrId: fdr._id, fdrRecord: fdr });
+      } catch {
+        // safe fallback
+      }
+    }
+
+    const trustScoreResult = calculateFdrTrustScore({
+      fdr,
+      forensicAnalysis: report,
+      duplicateResult,
+      bankVerification: fdr.bankVerification,
+      trigger: 'forensic_update',
+    });
+
     await persistReportAndAudit({
       fdrId: fdr._id,
       report,
@@ -460,7 +521,11 @@ export const runFdrForensics = async ({ user, fdrId }) => {
       metadata: {
         status: report.status,
         findingCount: report.findings.length,
+        trustScore: trustScoreResult.score,
       },
+      trustScoreResult,
+      duplicateResult,
+      qrData,
     });
     return report;
   } catch (error) {

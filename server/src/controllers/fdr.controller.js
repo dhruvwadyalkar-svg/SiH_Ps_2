@@ -100,13 +100,17 @@ export const createFdrController = async (request, response, next) => {
     return response.status(400).json({ error: 'A valid PDF, JPEG, or PNG document is required.' });
   }
 
-  const parsed = fdrCreateSchema.safeParse(request.body);
-  if (!parsed.success) {
-    return sendValidationError(response, parsed.error.issues);
+  const parsedBody = fdrCreateSchema.safeParse(request.body);
+  if (!parsedBody.success) {
+    return sendValidationError(response, parsedBody.error.issues);
   }
 
   try {
-    const record = await createFdrRecord({ user: request.user, payload: parsed.data, file: request.file });
+    const record = await createFdrRecord({
+      user: request.user,
+      payload: parsedBody.data,
+      file: request.file,
+    });
     return response.status(201).json({ fdr: serializeFdr(record) });
   } catch (error) {
     if (handleServiceError(response, error)) return;
@@ -115,13 +119,17 @@ export const createFdrController = async (request, response, next) => {
 };
 
 export const listFdrController = async (request, response, next) => {
-  const parsed = listFdrQuerySchema.safeParse(request.query);
-  if (!parsed.success) {
-    return sendValidationError(response, parsed.error.issues);
+  const parsedQuery = listFdrQuerySchema.safeParse(request.query);
+  if (!parsedQuery.success) {
+    return sendValidationError(response, parsedQuery.error.issues);
   }
 
   try {
-    return response.status(200).json(await listFdrRecords({ user: request.user, query: parsed.data }));
+    const result = await listFdrRecords({
+      user: request.user,
+      query: parsedQuery.data,
+    });
+    return response.status(200).json(result);
   } catch (error) {
     if (handleServiceError(response, error)) return;
     return next(error);
@@ -206,10 +214,13 @@ export const requestFdrExtractionController = async (request, response, next) =>
     return response.status(400).json({ error: 'Invalid FDR ID.' });
   }
 
+  const language = request.body?.language || request.query?.language || 'en-IN';
+
   try {
     const extraction = await requestFdrExtraction({
       user: request.user,
       fdrId: parsedId.data,
+      language,
     });
     return response.status(202).json(extraction);
   } catch (error) {

@@ -16,6 +16,9 @@ import {
   getReleaseRequest,
   listFdrReviewQueue,
   listReleaseRequests,
+  recalculateFdrTrustScoreAction,
+  recordBankVerificationOutcome,
+  recordDuplicateReviewOutcome,
 } from '../services/fdr-workflow.service.js';
 import { FdrServiceError } from '../services/fdr.service.js';
 
@@ -77,6 +80,53 @@ export const decideFdrReviewController = async (request, response, next) => {
   }
 };
 
+export const recordBankVerificationController = async (request, response, next) => {
+  const parsedId = fdrIdSchema.safeParse(request.params.id);
+  if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
+  try {
+    const details = await recordBankVerificationOutcome({
+      user: request.user,
+      fdrId: parsedId.data,
+      payload: request.body,
+    });
+    return response.status(200).json(details);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
+export const recordDuplicateReviewController = async (request, response, next) => {
+  const parsedId = fdrIdSchema.safeParse(request.params.id);
+  if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
+  try {
+    const details = await recordDuplicateReviewOutcome({
+      user: request.user,
+      fdrId: parsedId.data,
+      payload: request.body,
+    });
+    return response.status(200).json(details);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
+export const recalculateTrustScoreController = async (request, response, next) => {
+  const parsedId = fdrIdSchema.safeParse(request.params.id);
+  if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
+  try {
+    const details = await recalculateFdrTrustScoreAction({
+      user: request.user,
+      fdrId: parsedId.data,
+    });
+    return response.status(200).json(details);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
 export const createFdrRenewalController = async (request, response, next) => {
   const parsedId = fdrIdSchema.safeParse(request.params.id);
   if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
@@ -106,7 +156,7 @@ export const createReleaseRequestController = async (request, response, next) =>
       request: await createReleaseRequest({
         user: request.user,
         fdrId: parsedId.data,
-        ...parsedBody.data,
+        reason: parsedBody.data.reason,
       }),
     });
   } catch (error) {
