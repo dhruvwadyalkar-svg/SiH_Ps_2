@@ -528,8 +528,30 @@ npm run db:check:test
 npm run test:e2e
 ```
 
-`db:check:test` refuses a URI for any database other than `aicte_fdr_portal_test`. The HTTP suite exercises registration and login, authorization and cross-institution access, FDR creation/list/update/download, invalid and oversized uploads, OCR extraction/comparison, forensic analysis, reviewer correction/resubmission/completion, renewal linkage, release request decisions, notifications, dashboards, reports and CSV. Current rendered-frontend tests use mocked API responses; they are not counted as browser-to-backend E2E coverage. For manual UI verification, start the backend with the test-only URI and the Vite frontend with `VITE_API_BASE_URL` pointing to that backend, then use a synthetic test account only.
+`db:check:test` refuses a URI for any database other than `aicte_fdr_portal_test`. The HTTP suite exercises registration and login, authorization and cross-institution access, FDR creation/list/update/download, invalid and oversized uploads, OCR extraction/comparison, forensic analysis, reviewer correction/resubmission/completion, renewal linkage, release request decisions, notifications, dashboards, reports and CSV. The three rendered-frontend Vitest tests use mocked API responses; browser-to-backend coverage is provided separately by the Phase 12 Playwright suite below.
 
 For a manual frontend-to-backend smoke test, create the isolated test configuration as above, then run `npm run start:test` from `server` and `npm run dev` from `client` in separate terminals. The test server pins MongoDB to `aicte_fdr_portal_test`, disables reminders and external OCR credentials, and uses temporary private storage that is removed when the server exits. Use the registration page for a synthetic institution account, then test FDR upload, record detail, OCR/forensic panels, and access-denied states. Stop the test server before running another test suite against the same database.
 
-See [docs/E2E_TEST_REPORT.md](./docs/E2E_TEST_REPORT.md) for the observed results, test-data isolation details, limitations and manual verification steps.
+See [docs/E2E_TEST_REPORT.md](./docs/E2E_TEST_REPORT.md) for the Phase 11 results and [docs/PHASE12_READINESS_REPORT.md](./docs/PHASE12_READINESS_REPORT.md) for actual browser results, test-data isolation details, deployment blockers and manual verification steps.
+
+## Phase 12: browser E2E and deployment readiness
+
+The Playwright browser suite starts both the guarded test backend and Vite frontend, and exercises the rendered React application against Express using synthetic test data. It requires `server/.env.test` configured with a least-privilege test account whose URI targets only `aicte_fdr_portal_test`; create it from `server/.env.test.example` and set a random test-only JWT secret. The test runner refuses other database names, configures the client API URL as `http://localhost:3011/api`, and cleans only its uniquely tagged fixtures and private temporary files. It seeds synthetic administrative/reviewer accounts and performs institution registration through the UI.
+
+```powershell
+cd server
+Copy-Item .env.test.example .env.test
+# Edit .env.test with a dedicated test database account and random test-only JWT secret.
+npm run db:check:test
+npm test
+npm run test:e2e
+
+cd ..\client
+npm test
+npm run test:e2e
+npm run build
+```
+
+Install the matching Chromium browser once with `npx playwright install chromium` from `client`. The browser flow covers institution registration/login and role navigation, official institution approval, FDR form submission/document upload/list/detail, deterministic test OCR and local forensics, reviewer queue/decision, unread notifications, and Institution B denial for Institution A's record and document. The test OCR provider is enabled only by the guarded `NODE_ENV=test` startup and is never a live Sarvam result. Do not run `npm run db:check` against the production database for E2E verification.
+
+Current Phase 12 results and known limitations are in [docs/PHASE12_READINESS_REPORT.md](./docs/PHASE12_READINESS_REPORT.md). Browser E2E, test DB connectivity and a production frontend build passed; live Sarvam OCR and production deployment were not verified. Production readiness remains blocked on a configured frontend API URL, confirmed rotated/least-privilege credentials, and persistent private document storage on the selected host.
