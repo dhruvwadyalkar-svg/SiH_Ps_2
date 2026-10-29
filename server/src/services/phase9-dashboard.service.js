@@ -71,6 +71,26 @@ const getFdrDashboardCounts = async ({ institutionId, today, upcomingEnd }) => {
           { $match: { replacesFdr: { $ne: null }, workflowStatus: { $in: ['submitted', 'under_review', 'correction_requested'] } } },
           { $count: 'count' },
         ],
+        integrityVerified: [
+          { $match: { 'integrityStatus.status': 'verified' } },
+          { $count: 'count' },
+        ],
+        integrityMismatch: [
+          { $match: { 'integrityStatus.status': 'mismatch' } },
+          { $count: 'count' },
+        ],
+        integrityUnavailable: [
+          {
+            $match: {
+              $or: [
+                { 'integrityStatus.status': 'unavailable' },
+                { 'documentMetadata.storageRef': { $in: [null, ''] } },
+                { 'documentMetadata.checksum': { $in: [null, ''] } },
+              ],
+            },
+          },
+          { $count: 'count' },
+        ],
       },
     },
   ]);
@@ -78,14 +98,28 @@ const getFdrDashboardCounts = async ({ institutionId, today, upcomingEnd }) => {
   const byWorkflowStatus = Object.fromEntries(
     (result.byWorkflowStatus || []).map(({ _id, count }) => [_id, count]),
   );
+  const total = countFromFacet(result.total);
+  const verified = countFromFacet(result.integrityVerified);
+  const mismatch = countFromFacet(result.integrityMismatch);
+  const unavailable = countFromFacet(result.integrityUnavailable);
+  const notChecked = Math.max(0, total - verified - mismatch - unavailable);
+
   return {
-    totalFdrs: countFromFacet(result.total),
+    totalFdrs: total,
     byWorkflowStatus,
     approachingMaturity: countFromFacet(result.approachingMaturity),
     maturedAwaitingAction: countFromFacet(result.maturedAwaitingAction),
     pendingReview: countFromFacet(result.pendingReview),
     correctionRequests: countFromFacet(result.correctionRequests),
     renewalReplacementWorkload: countFromFacet(result.renewalReplacementWorkload),
+    integritySummary: {
+      total,
+      verified,
+      mismatch,
+      unavailable,
+      notChecked,
+      notCheckedOrUnavailable: notChecked + unavailable,
+    },
   };
 };
 

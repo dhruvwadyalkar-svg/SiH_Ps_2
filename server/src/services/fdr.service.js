@@ -32,12 +32,29 @@ const getInstitutionId = (user) => {
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const writeAuditEvent = ({ actor, action, entityId, metadata }) =>
+const writeAuditEvent = ({
+  actor,
+  actorRole,
+  action,
+  entityId,
+  outcome = 'success',
+  reason = null,
+  documentVersion = 1,
+  documentChecksum = null,
+  diff = [],
+  metadata = {},
+}) =>
   new AuditLog({
     actor,
+    actorRole,
     action,
     entityType: 'FDR',
     entityId,
+    outcome,
+    reason,
+    documentVersion,
+    documentChecksum,
+    diff,
     metadata,
   });
 
@@ -54,6 +71,7 @@ const sanitizeDocumentMetadata = (metadata = {}) => ({
   mimeType: metadata.mimeType || null,
   fileSize: metadata.fileSize ?? null,
   checksum: metadata.checksum || null,
+  version: metadata.version || 1,
   uploadedAt: metadata.uploadedAt || null,
 });
 
@@ -133,6 +151,37 @@ export const serializeFdr = (fdr) => ({
     currentStage: fdr.maturityEscalation.currentStage || 'not_due',
     lastEscalatedAt: fdr.maturityEscalation.lastEscalatedAt || null,
   } : null,
+  integrityStatus: fdr.integrityStatus ? {
+    status: fdr.integrityStatus.status || 'not_checked',
+    lastCheckedAt: fdr.integrityStatus.lastCheckedAt || null,
+    lastCheckedBy: fdr.integrityStatus.lastCheckedBy ? String(fdr.integrityStatus.lastCheckedBy) : null,
+    version: fdr.integrityStatus.version || 1,
+    recordedChecksum: fdr.integrityStatus.recordedChecksum || fdr.documentMetadata?.checksum || null,
+    calculatedChecksum: fdr.integrityStatus.calculatedChecksum || null,
+    message: fdr.integrityStatus.message || null,
+    reason: fdr.integrityStatus.reason || null,
+    alertsCount: Array.isArray(fdr.integrityStatus.alerts) ? fdr.integrityStatus.alerts.length : 0,
+    hasActiveAlert: Array.isArray(fdr.integrityStatus.alerts) ? fdr.integrityStatus.alerts.some((a) => a.status === 'active') : false,
+    historyCount: Array.isArray(fdr.integrityStatus.history) ? fdr.integrityStatus.history.length : 0,
+  } : {
+    status: 'not_checked',
+    lastCheckedAt: null,
+    lastCheckedBy: null,
+    version: 1,
+    recordedChecksum: fdr.documentMetadata?.checksum || null,
+    calculatedChecksum: null,
+    alertsCount: 0,
+    hasActiveAlert: false,
+    historyCount: 0,
+  },
+  documentVersions: Array.isArray(fdr.documentVersions) ? fdr.documentVersions.map((v) => ({
+    version: v.version,
+    fileName: v.fileName,
+    fileSize: v.fileSize,
+    mimeType: v.mimeType,
+    checksum: v.checksum,
+    uploadedAt: v.uploadedAt,
+  })) : [],
   createdAt: fdr.createdAt,
   updatedAt: fdr.updatedAt,
 });
@@ -184,7 +233,29 @@ export const createFdrRecord = async ({ user, payload, file }) => {
           mimeType: documentInfo.mimeType,
           fileSize: documentInfo.fileSize,
           checksum: documentInfo.checksum,
+          version: 1,
           uploadedAt: documentInfo.uploadedAt,
+        },
+        documentVersions: [
+          {
+            version: 1,
+            storageRef: documentInfo.storageKey,
+            fileName: documentInfo.fileName,
+            mimeType: documentInfo.mimeType,
+            fileSize: documentInfo.fileSize,
+            checksum: documentInfo.checksum,
+            uploadedAt: documentInfo.uploadedAt,
+            uploadedBy: user._id,
+          },
+        ],
+        integrityStatus: {
+          status: 'not_checked',
+          version: 1,
+          recordedChecksum: documentInfo.checksum,
+          calculatedChecksum: null,
+          lastCheckedAt: null,
+          history: [],
+          alerts: [],
         },
         bankVerification: {
           status: 'pending',
@@ -242,8 +313,11 @@ export const createFdrRecord = async ({ user, payload, file }) => {
       await record.save({ session });
       await writeAuditEvent({
         actor: user._id,
+        actorRole: user.role,
         action: 'fdr_created',
         entityId: record._id,
+        documentVersion: 1,
+        documentChecksum: documentInfo.checksum,
         metadata: {
           institutionId: String(institution._id),
           fdrNumber: record.fdrNumber,
@@ -251,8 +325,11 @@ export const createFdrRecord = async ({ user, payload, file }) => {
       }).save({ session });
       await writeAuditEvent({
         actor: user._id,
+        actorRole: user.role,
         action: 'fdr_document_uploaded',
         entityId: record._id,
+        documentVersion: 1,
+        documentChecksum: documentInfo.checksum,
         metadata: {
           fileName: documentInfo.fileName,
           mimeType: documentInfo.mimeType,
@@ -371,12 +448,31 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
         throw new FdrServiceError(409, 'Corrected FDR records must be resubmitted for review.');
       }
 
+      const changedDiffs = [];
       for (const field of ['fdrNumber', 'bankName', 'branch', 'amount', 'currency', 'issueDate', 'maturityDate', 'interestRate', 'depositorName', 'ifscCode']) {
         if (field in updates) {
-          record[field] = updates[field];
+          const prev = record[field];
+          const next = updates[field];
+          const prevStr = prev instanceof Date ? prev.toISOString() : (prev ?? null);
+          const nextStr = next instanceof Date ? next.toISOString() : (next ?? null);
+          if (String(prevStr) !== String(nextStr)) {
+            changedDiffs.push({
+              field,
+              previousValue: prev instanceof Date ? prev.toISOString() : (prev ?? null),
+              newValue: next instanceof Date ? next.toISOString() : (next ?? null),
+            });
+            record[field] = updates[field];
+          }
         }
       }
       if (updates.workflowStatus) {
+        if (updates.workflowStatus !== previousStatus) {
+          changedDiffs.push({
+            field: 'workflowStatus',
+            previousValue: previousStatus,
+            newValue: updates.workflowStatus,
+          });
+        }
         record.workflowStatus = updates.workflowStatus;
         if (updates.workflowStatus === 'submitted') {
           record.submittedAt = new Date();
@@ -455,8 +551,14 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
       await record.save({ session });
       await writeAuditEvent({
         actor: user._id,
+        actorRole: user.role,
         action: 'fdr_metadata_updated',
         entityId: record._id,
+        outcome: 'success',
+        reason: updates.reason || (updates.workflowStatus === 'submitted' ? 'Resubmitted after modification' : 'Institution updated FDR information'),
+        diff: changedDiffs,
+        documentVersion: record.documentMetadata?.version || 1,
+        documentChecksum: record.documentMetadata?.checksum || null,
         metadata: {
           changedFields: Object.keys(updates),
           institutionId,

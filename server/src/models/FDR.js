@@ -26,6 +26,10 @@ const documentMetadataSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    version: {
+      type: Number,
+      default: 1,
+    },
     uploadedAt: {
       type: Date,
       default: null,
@@ -443,6 +447,67 @@ const maturityEscalationSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const integrityCheckHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['verified', 'mismatch', 'unavailable', 'not_checked'],
+      required: true,
+    },
+    version: { type: Number, required: true },
+    recordedChecksum: { type: String, default: null },
+    calculatedChecksum: { type: String, default: null },
+    match: { type: Boolean, default: null },
+    checkedAt: { type: Date, required: true, default: Date.now },
+    checkedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    trigger: { type: String, enum: ['manual', 'scheduled', 'automated', 'upload'], default: 'manual' },
+    message: { type: String, default: null },
+    reason: { type: String, default: null },
+  },
+  { _id: true },
+);
+
+const integrityAlertSchema = new mongoose.Schema(
+  {
+    alertId: { type: String, required: true },
+    documentVersion: { type: Number, required: true },
+    expectedChecksum: { type: String, required: true },
+    observedChecksum: { type: String, default: null },
+    detectedAt: { type: Date, required: true, default: Date.now },
+    status: {
+      type: String,
+      enum: ['active', 'investigating', 'acknowledged', 'resolved', 'dismissed'],
+      default: 'active',
+    },
+    severity: { type: String, enum: ['high', 'critical', 'warning'], default: 'high' },
+    notes: { type: String, default: null },
+    investigationOutcome: { type: String, default: null },
+    investigatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    investigatedAt: { type: Date, default: null },
+  },
+  { _id: true },
+);
+
+const integrityStatusSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['verified', 'mismatch', 'not_checked', 'unavailable'],
+      default: 'not_checked',
+    },
+    lastCheckedAt: { type: Date, default: null },
+    lastCheckedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    version: { type: Number, default: 1 },
+    recordedChecksum: { type: String, default: null },
+    calculatedChecksum: { type: String, default: null },
+    message: { type: String, default: null },
+    reason: { type: String, default: null },
+    history: { type: [integrityCheckHistorySchema], default: [] },
+    alerts: { type: [integrityAlertSchema], default: [] },
+  },
+  { _id: false },
+);
+
 const fdrSchema = new mongoose.Schema(
   {
     institution: {
@@ -507,6 +572,24 @@ const fdrSchema = new mongoose.Schema(
     documentMetadata: {
       type: documentMetadataSchema,
       default: {},
+    },
+    documentVersions: {
+      type: [
+        new mongoose.Schema(
+          {
+            version: { type: Number, required: true },
+            storageRef: { type: String, default: null },
+            fileName: { type: String, default: null },
+            mimeType: { type: String, default: null },
+            fileSize: { type: Number, default: null },
+            checksum: { type: String, default: null },
+            uploadedAt: { type: Date, default: Date.now },
+            uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
     },
     workflowStatus: {
       type: String,
@@ -582,6 +665,10 @@ const fdrSchema = new mongoose.Schema(
       type: maturityEscalationSchema,
       default: () => ({ currentStage: 'not_due' }),
     },
+    integrityStatus: {
+      type: integrityStatusSchema,
+      default: () => ({ status: 'not_checked' }),
+    },
     reviewer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -609,6 +696,7 @@ fdrSchema.index({ 'bankVerification.status': 1 });
 fdrSchema.index({ 'duplicateCheck.status': 1 });
 fdrSchema.index({ 'documentMetadata.checksum': 1 });
 fdrSchema.index({ 'trustScore.category': 1 });
+fdrSchema.index({ 'integrityStatus.status': 1 });
 
 fdrSchema.path('maturityDate').validate(function validateMaturityDate(value) {
   if (!this.issueDate || !value) {

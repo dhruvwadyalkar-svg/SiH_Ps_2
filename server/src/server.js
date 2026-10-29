@@ -1,6 +1,7 @@
 import app from './app.js';
 import connectDB from './config/db.js';
 import { getMaturityReminderConfig, startMaturityReminderScheduler } from './jobs/maturity-reminder.job.js';
+import { getIntegrityMonitorConfig, startIntegrityMonitorScheduler } from './jobs/integrity-monitor.job.js';
 
 const port = Number(process.env.PORT) || 3000;
 
@@ -12,6 +13,11 @@ const startServer = async () => {
       const reminderConfig = getMaturityReminderConfig();
       if (reminderConfig.enabled) {
         startMaturityReminderScheduler({ config: reminderConfig });
+      }
+
+      const integrityConfig = getIntegrityMonitorConfig();
+      if (integrityConfig.enabled) {
+        startIntegrityMonitorScheduler({ config: integrityConfig });
       }
     } catch (dbError) {
       console.error('MongoDB connection notice:', dbError.message);

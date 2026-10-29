@@ -18,6 +18,12 @@ import {
   reviewRiskFindingController,
   recalculateRiskScoreController,
 } from '../controllers/fdr-workflow.controller.js';
+import {
+  exportAuditLogsCsvController,
+  getAuditLogDetailsController,
+  listAuditLogsController,
+  verifyAuditChainController,
+} from '../controllers/audit-log.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
 
@@ -41,5 +47,10 @@ router.post('/fdrs/:id/risk-score/recalculate', recalculateRiskScoreController);
 router.get('/release-requests', listReleaseRequestsController);
 router.get('/release-requests/:requestId', getReleaseRequestController);
 router.post('/release-requests/:requestId/decision', decideReleaseRequestController);
+
+router.get('/audit-trail/export', exportAuditLogsCsvController);
+router.post('/audit-trail/verify-chain', verifyAuditChainController);
+router.get('/audit-trail/:id', getAuditLogDetailsController);
+router.get('/audit-trail', listAuditLogsController);
 
 export default router;

@@ -52,8 +52,32 @@ const withSession = async (operation) => {
   }
 };
 
-const writeAudit = ({ actor, action, entityId, metadata }) =>
-  new AuditLog({ actor, action, entityType: 'FDR', entityId, metadata });
+const writeAudit = ({
+  actor,
+  actorRole,
+  action,
+  entityType = 'FDR',
+  entityId,
+  outcome = 'success',
+  reason = null,
+  documentVersion = 1,
+  documentChecksum = null,
+  diff = [],
+  metadata = {},
+}) =>
+  new AuditLog({
+    actor,
+    actorRole,
+    action,
+    entityType,
+    entityId,
+    outcome,
+    reason,
+    documentVersion,
+    documentChecksum,
+    diff,
+    metadata,
+  });
 
 const safeFdrSummary = (record) => ({
   id: String(record._id),
@@ -379,8 +403,20 @@ export const decideFdrReview = async ({ user, fdrId, decision, reason }) => {
     await fdr.save({ session });
     await writeAudit({
       actor: user._id,
+      actorRole: user.role,
       action: 'fdr_review_decided',
       entityId: fdr._id,
+      outcome: 'success',
+      reason,
+      diff: [
+        {
+          field: 'workflowStatus',
+          previousValue: previousStatus,
+          newValue: transition.to,
+        },
+      ],
+      documentVersion: fdr.documentMetadata?.version || 1,
+      documentChecksum: fdr.documentMetadata?.checksum || null,
       metadata: { decision, reason, previousStatus, nextStatus: transition.to, timestamp },
     }).save({ session });
     updatedFdr = fdr;
@@ -725,6 +761,9 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
       if (existing) {
         throw new FdrWorkflowError(409, 'replacement_exists', 'A replacement record already exists for this FDR.');
       }
+      const originalVersion = original.documentMetadata?.version || 1;
+      const newVersion = originalVersion + 1;
+
       replacement = new FDR({
         institution: original.institution,
         ...payload,
@@ -737,8 +776,34 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
           mimeType: document.mimeType,
           fileSize: document.fileSize,
           checksum: document.checksum,
+          version: newVersion,
           uploadedAt: document.uploadedAt,
         },
+        documentVersions: [
+          ...(original.documentVersions?.length
+            ? original.documentVersions
+            : [
+                {
+                  version: originalVersion,
+                  storageRef: original.documentMetadata?.storageRef,
+                  fileName: original.documentMetadata?.fileName,
+                  mimeType: original.documentMetadata?.mimeType,
+                  fileSize: original.documentMetadata?.fileSize,
+                  checksum: original.documentMetadata?.checksum,
+                  uploadedAt: original.documentMetadata?.uploadedAt,
+                },
+              ]),
+          {
+            version: newVersion,
+            storageRef: document.storageKey,
+            fileName: document.fileName,
+            mimeType: document.mimeType,
+            fileSize: document.fileSize,
+            checksum: document.checksum,
+            uploadedAt: document.uploadedAt,
+            uploadedBy: user._id,
+          },
+        ],
         bankVerification: {
           status: 'pending',
           qrCode: {
@@ -793,8 +858,13 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
       await replacement.save({ session });
       await writeAudit({
         actor: user._id,
+        actorRole: user.role,
         action: 'fdr_replacement_submitted',
         entityId: replacement._id,
+        outcome: 'success',
+        reason: 'Authorized replacement / renewal instrument submitted with new document version.',
+        documentVersion: newVersion,
+        documentChecksum: document.checksum,
         metadata: {
           originalFdrId: String(original._id),
           previousStatus: null,

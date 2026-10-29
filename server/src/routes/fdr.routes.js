@@ -19,6 +19,14 @@ import {
   createFdrRenewalController,
   createReleaseRequestController,
 } from '../controllers/fdr-workflow.controller.js';
+import {
+  getFdrIntegrityHistoryController,
+  getIntegritySummaryController,
+  investigateIntegrityAlertController,
+  listIntegrityRecordsController,
+  runBulkIntegrityCheckController,
+  verifyDocumentIntegrityController,
+} from '../controllers/audit-log.controller.js';
 
 const extractionRoles = ['institution_admin', 'institution_user', 'aicte_admin', 'reviewer'];
 
@@ -54,6 +62,23 @@ router.use(authenticate);
 
 router.post('/', authorizeRoles('institution_admin', 'institution_user'), upload.single('document'), createFdrController);
 router.get('/', authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'), listFdrController);
+
+router.get(
+  '/integrity/summary',
+  authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
+  getIntegritySummaryController,
+);
+router.get(
+  '/integrity/records',
+  authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
+  listIntegrityRecordsController,
+);
+router.post(
+  '/integrity/check-all',
+  authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
+  runBulkIntegrityCheckController,
+);
+
 router.get(
   '/:id',
   authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
@@ -101,6 +126,21 @@ router.post(
   '/:id/release-requests',
   authorizeRoles('institution_admin', 'institution_user'),
   createReleaseRequestController,
+);
+router.post(
+  '/:id/verify-integrity',
+  authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
+  verifyDocumentIntegrityController,
+);
+router.get(
+  '/:id/integrity-history',
+  authorizeRoles('institution_admin', 'institution_user', 'aicte_admin', 'reviewer'),
+  getFdrIntegrityHistoryController,
+);
+router.post(
+  '/:id/integrity-alerts/:alertId/investigate',
+  authorizeRoles('aicte_admin', 'reviewer'),
+  investigateIntegrityAlertController,
 );
 
 export default router;

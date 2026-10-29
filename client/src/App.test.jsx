@@ -210,6 +210,41 @@ describe('Phase 10 frontend API integration', () => {
     expect(await screen.findByText('Review Completed')).toBeTruthy();
     expect(screen.getByText(/does not confirm bank authenticity/)).toBeTruthy();
   });
+
+  it('renders the Live FDR Integrity Monitor section with cryptographic metrics and navigation', async () => {
+    apiHandler = async (url) => {
+      if (url.pathname.endsWith('/auth/login')) return { body: loginResponse(institutionUser) };
+      if (url.pathname.endsWith('/notifications/unread-count')) return { body: { unreadCount: 0 } };
+      if (url.pathname.endsWith('/dashboard/summary')) {
+        return {
+          body: {
+            ...dashboardSummary,
+            integritySummary: {
+              total: 5,
+              verified: 4,
+              mismatch: 0,
+              unavailable: 1,
+              notChecked: 0,
+              notCheckedOrUnavailable: 1,
+              lastCheckedAt: '2026-10-29T12:00:00.000Z',
+            },
+          },
+        };
+      }
+      return { status: 404, body: { error: 'Not found.' } };
+    };
+
+    renderApp();
+    await signIn(institutionUser);
+
+    expect(await screen.findByRole('heading', { name: /Live FDR Integrity Monitor/i })).toBeTruthy();
+    expect(screen.getByText('Integrity Verified')).toBeTruthy();
+    expect(screen.getByText('Integrity Mismatch')).toBeTruthy();
+    expect(screen.getByText('Not Checked / Unavailable')).toBeTruthy();
+    expect(screen.getByText('Detailed Monitor')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Integrity monitor/i })).toBeTruthy();
+    expect(screen.getByText(/Continuous byte-level verification of stored security deposit receipts/i)).toBeTruthy();
+  });
 });
 
 describe('PART 2 — Header and Navigation Redesign', () => {
@@ -229,7 +264,7 @@ describe('PART 2 — Header and Navigation Redesign', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders institutional branding with AICTE name and Ashoka Chakra badge', () => {
+  it('renders institutional branding with AICTE name and official AICTE emblem', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <App />
@@ -243,8 +278,9 @@ describe('PART 2 — Header and Navigation Redesign', () => {
     expect(branding.textContent).toContain('ALL INDIA COUNCIL FOR TECHNICAL EDUCATION');
     expect(branding.textContent).toContain('Statutory Body · Ministry of Education, Government of India');
 
-    const emblem = document.querySelector('.aicte-emblem-badge svg.ashoka-chakra-svg');
+    const emblem = document.querySelector('.aicte-brand-logo img.aicte-brand-official-logo');
     expect(emblem).toBeTruthy();
+    expect(emblem.getAttribute('alt')).toContain('AICTE Official Emblem');
   });
 
   it('verifies that the legacy utility top bar has been cleanly removed', () => {
@@ -421,8 +457,7 @@ describe('PART 3 — Hero Section UI Redesign', () => {
     expect(ctaRow).toBeTruthy();
 
     const signInBtn = ctaRow.querySelector('a[href="/login"]');
-    expect(signInBtn).toBeTruthy();
-    expect(signInBtn.textContent).toContain('Sign In to Portal');
+    expect(signInBtn).toBeNull();
 
     const registerBtn = ctaRow.querySelector('a[href="/register"]');
     expect(registerBtn).toBeTruthy();
