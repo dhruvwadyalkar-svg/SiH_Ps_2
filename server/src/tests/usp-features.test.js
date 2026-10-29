@@ -5,6 +5,11 @@ import {
   TRUST_SCORE_CONFIG,
 } from '../services/fdr-trust-score.service.js';
 import {
+  calculateFdrRiskScore,
+  DEFAULT_RISK_SCORING_RULES,
+  mapRiskScoreToLevel,
+} from '../services/fdr-risk-score.service.js';
+import {
   STANDARD_VERIFICATION_CHECKLIST,
   generateBankVerificationEmailDraft,
   isUntrustedNetworkDestination,
@@ -226,6 +231,147 @@ describe('USP Feature 5 — Multilingual Indic OCR (23 Languages)', () => {
     expectedLangs.forEach((code) => {
       assert(SUPPORTED_OCR_LANGUAGES[code], `Language code ${code} should be supported`);
     });
+  });
+});
+
+describe('USP Feature 6 — Explainable FDR Risk Scoring Engine', () => {
+  it('weights and risk level thresholds conform to specification', () => {
+    const { weights, thresholds } = DEFAULT_RISK_SCORING_RULES;
+    assert.equal(weights.exactIdentifierCollision, 40);
+    assert.equal(weights.amountMismatch, 25);
+    assert.equal(weights.maturityDateMismatch, 20);
+    assert.equal(weights.unexplainedVersionChange, 20);
+    assert.equal(weights.missingRequiredInfo, 10);
+    assert.equal(weights.lowOcrConfidenceCritical, 10);
+    assert.equal(weights.impossibleDateSequence, 25);
+    assert.equal(weights.ifscFormatInvalid, 10);
+
+    assert.equal(mapRiskScoreToLevel(0), 'low');
+    assert.equal(mapRiskScoreToLevel(24), 'low');
+    assert.equal(mapRiskScoreToLevel(25), 'medium');
+    assert.equal(mapRiskScoreToLevel(49), 'medium');
+    assert.equal(mapRiskScoreToLevel(50), 'high');
+    assert.equal(mapRiskScoreToLevel(74), 'high');
+    assert.equal(mapRiskScoreToLevel(75), 'critical');
+    assert.equal(mapRiskScoreToLevel(100), 'critical');
+  });
+
+  it('computes low risk for clean conforming FDR submission', () => {
+    const fdr = {
+      fdrNumber: 'FDR-2026-CLEAN',
+      bankName: 'State Bank of India',
+      branch: 'Parliament Street, New Delhi',
+      amount: 1500000,
+      currency: 'INR',
+      issueDate: new Date('2026-01-01'),
+      maturityDate: new Date('2036-01-01'),
+      ifscCode: 'SBIN0000691',
+      documentMetadata: { fileName: 'fdr_scan.pdf', storageRef: 'some_ref' },
+      ocrResult: { status: 'completed', extractedData: {}, comparisonResults: {} },
+    };
+
+    const risk = calculateFdrRiskScore({ fdr });
+    assert.equal(risk.score, 0);
+    assert.equal(risk.level, 'low');
+    assert.equal(risk.findings.length, 0);
+    assert(risk.summary.includes('LOW'));
+  });
+
+  it('flags exact duplicate collision (+40 pts) and assigns Medium risk', () => {
+    const fdr = {
+      fdrNumber: 'FDR-2026-DUP',
+      bankName: 'Canara Bank',
+      branch: 'MG Road, Bangalore',
+      amount: 2500000,
+      currency: 'INR',
+      issueDate: new Date('2026-01-01'),
+      maturityDate: new Date('2036-01-01'),
+      ifscCode: 'CNRB0000123',
+      documentMetadata: { fileName: 'fdr.pdf', storageRef: 'some_ref' },
+    };
+    const duplicateResult = {
+      status: 'exact_document_match',
+      matches: [{ fdrNumber: 'FDR-2026-DUP', isAuthorizedReplacement: false }],
+    };
+
+    const risk = calculateFdrRiskScore({ fdr, duplicateResult });
+    assert.equal(risk.score, 40);
+    assert.equal(risk.level, 'medium');
+    assert.equal(risk.findings.length, 1);
+    assert.equal(risk.findings[0].id, 'exact_identifier_collision');
+    assert.equal(risk.findings[0].points, 40);
+  });
+
+  it('flags cumulative discrepancies: amount mismatch (+25) and impossible chronology (+25) as High risk (50)', () => {
+    const fdr = {
+      fdrNumber: 'FDR-2026-ERR',
+      bankName: 'Bank of Baroda',
+      branch: 'Alkapuri, Vadodara',
+      amount: 5000000,
+      currency: 'INR',
+      issueDate: new Date('2026-05-01'),
+      maturityDate: new Date('2026-01-01'), // Impossible: maturity before issue
+      ifscCode: 'BARB0ALKAPU',
+      documentMetadata: { fileName: 'fdr.pdf', storageRef: 'ref' },
+      ocrResult: {
+        status: 'completed',
+        extractedData: { deposit_amount: 3500000 },
+        comparisonResults: {
+          deposit_amount: { status: 'mismatch' },
+        },
+      },
+    };
+
+    const risk = calculateFdrRiskScore({ fdr });
+    assert.equal(risk.score, 50);
+    assert.equal(risk.level, 'high');
+    assert(risk.findings.some((f) => f.id === 'deposit_amount_mismatch'));
+    assert(risk.findings.some((f) => f.id === 'impossible_date_sequence'));
+  });
+
+  it('detects unexplained modification from previously stored version (+20 pts)', () => {
+    const original = {
+      fdrNumber: 'FDR-ORIG-001',
+      bankName: 'State Bank of India',
+      amount: 1000000,
+    };
+    const renewed = {
+      fdrNumber: 'FDR-RENEW-002', // changed
+      bankName: 'State Bank of India',
+      branch: 'Main Branch',
+      amount: 800000, // changed
+      currency: 'INR',
+      issueDate: new Date('2026-01-01'),
+      maturityDate: new Date('2031-01-01'),
+      ifscCode: 'SBIN0000691',
+      documentMetadata: { fileName: 'renewed.pdf', storageRef: 'ref' },
+      ocrResult: { status: 'not_started' },
+    };
+
+    const risk = calculateFdrRiskScore({ fdr: renewed, previousFdr: original });
+    assert(risk.score >= 20);
+    assert(risk.findings.some((f) => f.id === 'unexplained_version_change'));
+    const finding = risk.findings.find((f) => f.id === 'unexplained_version_change');
+    assert(finding.evidence.includes('Principal'));
+    assert(finding.evidence.includes('FDR Number'));
+  });
+
+  it('detects invalid IFSC code structure (+10 pts)', () => {
+    const fdr = {
+      fdrNumber: 'FDR-2026-IFSC',
+      bankName: 'Punjab National Bank',
+      branch: 'Connaught Place',
+      amount: 1000000,
+      currency: 'INR',
+      issueDate: new Date('2026-01-01'),
+      maturityDate: new Date('2036-01-01'),
+      ifscCode: 'INVALID_IFSC_123', // Malformed IFSC
+      documentMetadata: { fileName: 'fdr.pdf', storageRef: 'ref' },
+      ocrResult: { status: 'not_started' },
+    };
+
+    const risk = calculateFdrRiskScore({ fdr });
+    assert(risk.findings.some((f) => f.id === 'ifsc_format_invalid'));
   });
 });
 

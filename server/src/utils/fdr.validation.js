@@ -28,6 +28,19 @@ const currencySchema = z
   )
   .default('INR');
 
+const interestRateSchema = z.preprocess(
+  (value) => (value === '' || value === null || value === undefined ? undefined : Number(value)),
+  z.number().min(0).max(100).optional(),
+);
+const depositorNameSchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().max(255).optional(),
+);
+const ifscCodeSchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : typeof value === 'string' ? value.trim().toUpperCase() : value),
+  z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'IFSC code must be 11 characters (e.g. SBIN0000691).').optional(),
+);
+
 export const fdrCreateSchema = z
   .object({
     fdrNumber: fdrNumberSchema,
@@ -37,6 +50,9 @@ export const fdrCreateSchema = z
     currency: currencySchema,
     issueDate: dateStringSchema,
     maturityDate: dateStringSchema,
+    interestRate: interestRateSchema,
+    depositorName: depositorNameSchema,
+    ifscCode: ifscCodeSchema,
   })
   .strict()
   .refine((value) => value.maturityDate > value.issueDate, {
@@ -56,6 +72,9 @@ export const updateFdrSchema = z
     ).optional(),
     issueDate: dateStringSchema.optional(),
     maturityDate: dateStringSchema.optional(),
+    interestRate: interestRateSchema,
+    depositorName: depositorNameSchema,
+    ifscCode: ifscCodeSchema,
     workflowStatus: z.literal('submitted').optional(),
   })
   .strict()

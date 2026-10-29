@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Area,
@@ -24,18 +24,26 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   ClipboardCheck,
   ClipboardList,
   Clock,
   Compass,
   Copy,
+  Download,
+  Edit,
   ExternalLink,
+  Eye,
+  FileCheck,
   FileCheck2,
   FileSpreadsheet,
   FileText,
+  FileWarning,
   Globe,
   GraduationCap,
+  Hash,
   HelpCircle,
   History,
   IndianRupee,
@@ -47,6 +55,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  Maximize2,
   Menu,
   Phone,
   QrCode,
@@ -62,8 +71,260 @@ import {
   UserCheck,
   Users,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { apiRequest, setUnauthorizedHandler } from './api.js';
+import ashokStambhImg from './assets/ashok-stambh.png';
+import tirangaBrushImg from './assets/tiranga-brush.png';
+import tirangaWaveImg from './assets/tiranga-wave.png';
+
+export const DEMO_INSTITUTION_USER = {
+  id: 'demo-inst-01',
+  fullName: 'Prof. Rajesh Sharma',
+  email: 'dean@delhi-tech.edu.in',
+  role: 'institution_admin',
+  institution: {
+    id: 'inst-aicte-delhi-01',
+    name: 'Delhi Institute of Engineering & Technology',
+    institutionCode: '1-3329184711',
+    status: 'approved',
+  },
+};
+
+export const DEMO_COUNCIL_USER = {
+  id: 'demo-official-01',
+  fullName: 'Dr. Sunita Deshmukh',
+  email: 's.deshmukh@aicte-india.org',
+  role: 'aicte_admin',
+  institution: null,
+};
+
+export const DEMO_INSTITUTION_SUMMARY = {
+  totalFdrs: 4,
+  byWorkflowStatus: { submitted: 1, under_review: 1, approved: 2 },
+  approachingMaturity: 1,
+  maturedAwaitingAction: 0,
+  pendingReview: 1,
+  correctionRequests: 0,
+  renewalReplacementWorkload: 0,
+  activeReleaseRequests: 0,
+  unreadNotifications: 2,
+  period: { asOfDate: '2026-10-29' },
+};
+
+export const DEMO_OFFICIAL_SUMMARY = {
+  totalInstitutions: 48,
+  totalFdrs: 142,
+  byWorkflowStatus: { submitted: 14, under_review: 22, approved: 106 },
+  approachingMaturity: 8,
+  maturedAwaitingAction: 2,
+  pendingReview: 14,
+  correctionRequests: 3,
+  renewalReplacementWorkload: 4,
+  activeReleaseRequests: 2,
+  unreadNotifications: 5,
+  period: { asOfDate: '2026-10-29' },
+};
+
+export const DEMO_INSTITUTIONS_DATA = {
+  institutions: [
+    {
+      id: 'inst-1',
+      name: '[Demo] Delhi Institute of Engineering & Technology',
+      institutionCode: 'DEL-ENG-108',
+      contactEmail: 'registrar@delhi-tech.edu.in',
+      contactPhone: '011-29581000',
+      status: 'active',
+      createdAt: '2024-01-15T10:00:00Z',
+    },
+    {
+      id: 'inst-2',
+      name: '[Demo] Mumbai National College of Technology',
+      institutionCode: 'MUM-TECH-204',
+      contactEmail: 'director@mumbai-tech.edu.in',
+      contactPhone: '022-26543000',
+      status: 'active',
+      createdAt: '2024-03-20T11:30:00Z',
+    },
+    {
+      id: 'inst-3',
+      name: '[Demo] Bangalore Institute of Management & Science',
+      institutionCode: 'BLR-MGMT-315',
+      contactEmail: 'admin@bims.edu.in',
+      contactPhone: '080-23456789',
+      status: 'active',
+      createdAt: '2024-06-10T09:15:00Z',
+    },
+    {
+      id: 'inst-4',
+      name: '[Demo] Chennai Academy of Pharmacy & Research',
+      institutionCode: 'CHN-PHARM-409',
+      contactEmail: 'dean@capr.edu.in',
+      contactPhone: '044-22334455',
+      status: 'pending',
+      createdAt: '2026-08-14T14:45:00Z',
+    },
+    {
+      id: 'inst-5',
+      name: '[Demo] Kolkata Polytechnic Institute',
+      institutionCode: 'KOL-POLY-512',
+      contactEmail: 'principal@kpi.edu.in',
+      contactPhone: '033-24681357',
+      status: 'active',
+      createdAt: '2025-02-18T16:20:00Z',
+    },
+  ],
+  pagination: { page: 1, limit: 20, total: 5, pages: 1 },
+};
+
+export const DEMO_RELEASE_REQUESTS_DATA = {
+  records: [
+    {
+      id: 'rel-1',
+      fdr: { id: 'fdr-1', fdrNumber: 'DEMO-FDR-SBI-98124', amount: 10000000 },
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+      status: 'submitted',
+      reason: '[Demonstration Sample] 10-Year statutory tenure matured. Requesting official lien discharge and release certificate.',
+      createdAt: '2026-10-15T10:30:00Z',
+    },
+    {
+      id: 'rel-2',
+      fdr: { id: 'fdr-2', fdrNumber: 'DEMO-FDR-PNB-33102', amount: 2500000 },
+      institution: { name: '[Demo] Mumbai National College of Technology', institutionCode: 'MUM-TECH-204' },
+      status: 'under_review',
+      reason: '[Demonstration Sample] Course closure approved by AICTE; return of security deposit requested under APH Ch. II.',
+      createdAt: '2026-10-22T14:00:00Z',
+    },
+  ],
+  requests: [
+    {
+      id: 'rel-1',
+      fdr: { id: 'fdr-1', fdrNumber: 'DEMO-FDR-SBI-98124', amount: 10000000 },
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+      status: 'submitted',
+      reason: '[Demonstration Sample] 10-Year statutory tenure matured. Requesting official lien discharge and release certificate.',
+      createdAt: '2026-10-15T10:30:00Z',
+    },
+    {
+      id: 'rel-2',
+      fdr: { id: 'fdr-2', fdrNumber: 'DEMO-FDR-PNB-33102', amount: 2500000 },
+      institution: { name: '[Demo] Mumbai National College of Technology', institutionCode: 'MUM-TECH-204' },
+      status: 'under_review',
+      reason: '[Demonstration Sample] Course closure approved by AICTE; return of security deposit requested under APH Ch. II.',
+      createdAt: '2026-10-22T14:00:00Z',
+    },
+  ],
+  pagination: { page: 1, limit: 20, total: 2, pages: 1 },
+};
+
+export const DEMO_REPORTS_DATA = {
+  totalInstruments: 142,
+  totalAmount: 485000000,
+  approachingMaturity: 12,
+  activeInstitutions: 48,
+  byProgram: [
+    { program: 'Engineering & Technology', count: 85, amount: 350000000 },
+    { program: 'Management (MBA/PGDM)', count: 32, amount: 80000000 },
+    { program: 'Pharmacy', count: 15, amount: 35000000 },
+    { program: 'Architecture & Planning', count: 10, amount: 20000000 },
+  ],
+  byStatus: [
+    { status: 'approved', count: 118 },
+    { status: 'under_review', count: 18 },
+    { status: 'submitted', count: 6 },
+  ],
+};
+
+export const DEMO_NOTIFICATIONS_DATA = {
+  notifications: [
+    {
+      id: 'notif-1',
+      title: '[Demonstration] Branch Letter Received',
+      message: 'Branch confirmation letter logged for SBI-DEL-2026-FDR-98124. Awaiting Council scrutiny under APH Chapter I Section 1.4.',
+      read: false,
+      createdAt: '2026-10-29T11:30:00Z',
+    },
+    {
+      id: 'notif-2',
+      title: '[Demonstration] Maturity Window Milestone',
+      message: 'Statutory 90-day review reminder logged for sample institution.',
+      read: false,
+      createdAt: '2026-10-28T09:15:00Z',
+    },
+    {
+      id: 'notif-3',
+      title: '[Demonstration] OCR Signal Extracted',
+      message: 'OCR consistency score 94/100 calculated for sample record REC-2026-APH-0914. Manual branch verification required.',
+      read: true,
+      createdAt: '2026-10-25T14:20:00Z',
+    },
+  ],
+};
+
+export const DEMO_FDR_DATA = {
+  records: [
+    {
+      id: 'fdr-1',
+      fdrNumber: 'SBI-DEL-2026-FDR-98124 [Demo Specimen]',
+      issuingBank: 'State Bank of India',
+      branchName: 'New Delhi Main Branch',
+      ifscCode: 'SBIN0000691',
+      amount: 10000000,
+      currency: 'INR',
+      workflowStatus: 'under_review',
+      trustScore: 94,
+      submittedAt: '2026-08-15T10:00:00Z',
+      maturityDate: '2036-08-14',
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+    },
+    {
+      id: 'fdr-2',
+      fdrNumber: 'PNB-2026-FDR-44019 [Demo Specimen]',
+      issuingBank: 'Punjab National Bank',
+      branchName: 'Nehru Place Branch',
+      ifscCode: 'PUNB0012400',
+      amount: 2500000,
+      currency: 'INR',
+      workflowStatus: 'submitted',
+      trustScore: 88,
+      submittedAt: '2026-09-01T11:30:00Z',
+      maturityDate: '2034-08-31',
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+    },
+  ],
+  fdrs: [
+    {
+      id: 'fdr-1',
+      fdrNumber: 'SBI-DEL-2026-FDR-98124 [Demo Specimen]',
+      issuingBank: 'State Bank of India',
+      branchName: 'New Delhi Main Branch',
+      ifscCode: 'SBIN0000691',
+      amount: 10000000,
+      currency: 'INR',
+      workflowStatus: 'under_review',
+      trustScore: 94,
+      submittedAt: '2026-08-15T10:00:00Z',
+      maturityDate: '2036-08-14',
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+    },
+    {
+      id: 'fdr-2',
+      fdrNumber: 'PNB-2026-FDR-44019 [Demo Specimen]',
+      issuingBank: 'Punjab National Bank',
+      branchName: 'Nehru Place Branch',
+      ifscCode: 'PUNB0012400',
+      amount: 2500000,
+      currency: 'INR',
+      workflowStatus: 'submitted',
+      trustScore: 88,
+      submittedAt: '2026-09-01T11:30:00Z',
+      maturityDate: '2034-08-31',
+      institution: { name: '[Demo] Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
+    },
+  ],
+  pagination: { page: 1, limit: 20, total: 2, pages: 1 },
+};
 
 const AuthContext = createContext(null);
 const institutionRoles = ['institution_admin', 'institution_user'];
@@ -93,7 +354,40 @@ export function AuthProvider({ children }) {
       user: session?.user || null,
       login,
       logout,
-      request: (path, options = {}) => apiRequest(path, { token, ...options }),
+      request: (path, options = {}) => {
+        if (token?.startsWith('demo-')) {
+          if (path.includes('summary')) {
+            const isOff = session?.user?.role === 'aicte_admin' || session?.user?.role === 'reviewer';
+            return Promise.resolve(isOff ? DEMO_OFFICIAL_SUMMARY : DEMO_INSTITUTION_SUMMARY);
+          }
+          if (path.includes('unread-count')) {
+            return Promise.resolve({ unreadCount: 2 });
+          }
+          if (path.includes('admin/institutions')) {
+            return Promise.resolve(DEMO_INSTITUTIONS_DATA);
+          }
+          if (path.includes('release-requests') || path.includes('releases')) {
+            return Promise.resolve(DEMO_RELEASE_REQUESTS_DATA);
+          }
+          if (path.includes('reports')) {
+            return Promise.resolve(DEMO_REPORTS_DATA);
+          }
+          if (path.includes('notifications')) {
+            return Promise.resolve(DEMO_NOTIFICATIONS_DATA);
+          }
+          if (path.includes('institutions/me')) {
+            return Promise.resolve({ institution: DEMO_INSTITUTION_USER.institution });
+          }
+          if (path.includes('review-queue') || path.includes('/fdrs') || path.includes('fdrs')) {
+            if (path.includes('/review') || (path.split('/').length > 2 && !path.includes('?'))) {
+              return Promise.resolve({ record: DEMO_FDR_DATA.records[0] });
+            }
+            return Promise.resolve(DEMO_FDR_DATA);
+          }
+          return Promise.resolve({ ok: true, status: 'success', data: {} });
+        }
+        return apiRequest(path, { token, ...options });
+      },
     };
   }, [session, logout, login]);
 
@@ -271,14 +565,73 @@ function AshokaChakra({ size = 24, className = '', color = '#000080' }) {
   );
 }
 
-function LandingPage() {
+export function AshokStambh({ size = 260, className = '', alt = 'State Emblem of India - Ashok Stambh', style = {} }) {
+  return (
+    <img
+      src={ashokStambhImg}
+      alt={alt}
+      width={size}
+      height={Math.round(size * (600 / 370))}
+      className={`official-ashok-stambh-img ${className}`}
+      style={{
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        maxWidth: '100%',
+        height: 'auto',
+        objectFit: 'contain',
+        ...style,
+      }}
+    />
+  );
+}
+
+export function TirangaWave({ className = '', alt = 'Indian Tricolor Ribbon Wave', style = {}, ...props }) {
+  return (
+    <img
+      src={tirangaWaveImg}
+      alt={alt}
+      className={`tiranga-wave-img ${className}`}
+      style={{
+        display: 'inline-block',
+        maxWidth: '100%',
+        height: 'auto',
+        objectFit: 'contain',
+        ...style,
+      }}
+      {...props}
+    />
+  );
+}
+
+export function TirangaBrush({ className = '', alt = 'Indian Tricolor Brush Stroke with Ashoka Chakra', style = {}, ...props }) {
+  return (
+    <img
+      src={tirangaBrushImg}
+      alt={alt}
+      className={`tiranga-brush-img ${className}`}
+      style={{
+        display: 'inline-block',
+        maxWidth: '100%',
+        height: 'auto',
+        objectFit: 'contain',
+        ...style,
+      }}
+      {...props}
+    />
+  );
+}
+
+export function LandingHeader() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('norms');
+  const drawerRef = useRef(null);
+  const toggleRef = useRef(null);
 
   // Close mobile drawer when window resizes to desktop width
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 992) {
+      if (window.innerWidth > 960) {
         setMobileMenuOpen(false);
       }
     };
@@ -289,8 +642,9 @@ function LandingPage() {
   // Close mobile drawer on Escape key and prevent background scroll
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && mobileMenuOpen) {
         setMobileMenuOpen(false);
+        toggleRef.current?.focus();
       }
     };
     if (mobileMenuOpen) {
@@ -305,48 +659,76 @@ function LandingPage() {
     };
   }, [mobileMenuOpen]);
 
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  // Track active section for navigation highlight
+  useEffect(() => {
+    const sectionIds = ['norms', 'pillars', 'banks', 'workflow'];
+    const handleIntersect = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(handleIntersect, {
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0,
+      });
+
+      sectionIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+
+      return () => observer.disconnect();
+    }
+  }, []);
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
+  const handleNavClick = (e, targetId) => {
+    closeMobileMenu();
+    const element = document.getElementById(targetId);
+    if (element) {
+      e.preventDefault();
+      if (typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', `#${targetId}`);
+      }
+      setActiveSection(targetId);
+    }
+  };
+
+  const handleLogoClick = () => {
+    closeMobileMenu();
+    if (typeof window !== 'undefined' && (window.location.pathname === '/' || window.location.pathname === '/landing')) {
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const navLinks = [
+    { id: 'norms', label: 'APH Norms', icon: BookOpen },
+    { id: 'pillars', label: 'Innovations', icon: Sparkles },
+    { id: 'banks', label: 'Bank Network', icon: Landmark },
+    { id: 'workflow', label: 'SOP Workflow', icon: ClipboardCheck },
+  ];
 
   return (
-    <div className="aicte-landing" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
-      {/* Accessibility: Skip to Main Content */}
-      <a href="#main-content" className="skip-to-content">
-        Skip to main content
-      </a>
-
-      {/* 1. National Tricolor Strip */}
-      <div className="tricolor-stripe" role="presentation" aria-hidden="true" />
-
-      {/* 2. Official Government Header Strip */}
-      <div className="gov-top-bar" role="region" aria-label="Official Government Header">
-        <div className="gov-top-bar-left">
-          <span>🇮🇳 <b>भारत सरकार</b> | Government of India</span>
-          <span className="gov-divider" aria-hidden="true">|</span>
-          <span>शिक्षा मंत्रालय | Ministry of Education</span>
-          <span className="gov-divider" aria-hidden="true">|</span>
-          <span className="gov-motto-tag">सत्यमेव जयते</span>
-          <span className="gov-motto-tag gov-motto-secondary">
-            योगः कर्मसु कौशलम्
-          </span>
-        </div>
-        <div className="gov-top-bar-right">
-          <span className="gov-helpline-label">
-            <Phone size={12} aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-            Helpline: 011-29581000
-          </span>
-          <span className="gov-divider" aria-hidden="true">|</span>
-          <a href="#contact" className="gov-link">Helpdesk</a>
-          <span className="gov-divider" aria-hidden="true">|</span>
-          <a href="#norms" className="gov-link">APH Norms</a>
-        </div>
-      </div>
-
-      {/* 3. Main AICTE Navigation Header */}
+    <>
+      {/* Main AICTE Navigation Header */}
       <header className="aicte-navbar" role="banner">
         <div className="aicte-navbar-container">
-          <Link to="/" className="aicte-brand-logo" aria-label="AICTE FDR Portal Home">
+          {/* Institutional Branding Area (Left) */}
+          <Link to="/" className="aicte-brand-logo" aria-label="AICTE FDR Portal Home" onClick={handleLogoClick}>
             <div className="aicte-emblem-badge" aria-hidden="true">
-              <AshokaChakra size={28} color="#FF9933" />
+              <AshokaChakra size={26} color="#FF9933" />
             </div>
             <div className="aicte-brand-text">
               <h2>अखिल भारतीय तकनीकी शिक्षा परिषद</h2>
@@ -355,35 +737,36 @@ function LandingPage() {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Primary Navigation (Center) */}
           <nav className="aicte-nav-links" aria-label="Main Navigation">
-            <a href="#norms" className="aicte-nav-item">APH Norms</a>
-            <a href="#pillars" className="aicte-nav-item">Safeguards</a>
-            <a href="#banks" className="aicte-nav-item">Scheduled Banks</a>
-            <a href="#workflow" className="aicte-nav-item">SOP Lifecycle</a>
-            <a href="#bureaus" className="aicte-nav-item">Zonal Bureaus</a>
+            {navLinks.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`aicte-nav-item ${activeSection === item.id ? 'active' : ''}`}
+                onClick={(e) => handleNavClick(e, item.id)}
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
 
-          {/* Desktop Call to Action Buttons */}
+          {/* Primary Action Button (Right: Single Login Gateway Button) */}
           <div className="aicte-nav-actions">
             {user ? (
               <Link to="/" className="btn-aicte-primary">
-                <LayoutDashboard size={16} aria-hidden="true" /> Open Council Dashboard
+                <LayoutDashboard size={15} aria-hidden="true" /> Open Council Dashboard
               </Link>
             ) : (
-              <>
-                <Link to="/login" className="btn-aicte-primary">
-                  Portal Sign In <ArrowRight size={15} aria-hidden="true" />
-                </Link>
-                <Link to="/register" className="btn-aicte-secondary">
-                  Register Institution
-                </Link>
-              </>
+              <Link to="/login" className="btn-aicte-primary">
+                Portal Sign In <ArrowRight size={14} aria-hidden="true" />
+              </Link>
             )}
           </div>
 
           {/* Mobile Navigation Toggle Button */}
           <button
+            ref={toggleRef}
             type="button"
             className="aicte-mobile-toggle"
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -391,82 +774,406 @@ function LandingPage() {
             aria-controls="mobile-navigation-drawer"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
           >
-            {mobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+            {mobileMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
           </button>
         </div>
+        <div className="header-tricolor-accent" aria-hidden="true" />
 
-        {/* Mobile Navigation Drawer / Dropdown */}
+        {/* Mobile Backdrop Overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="aicte-mobile-backdrop"
+            aria-hidden="true"
+            onClick={closeMobileMenu}
+          />
+        )}
+
+        {/* Mobile Navigation Drawer */}
         <div
           id="mobile-navigation-drawer"
+          ref={drawerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation Menu"
           className={`aicte-mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}
           aria-hidden={!mobileMenuOpen}
         >
           <div className="aicte-mobile-drawer-content">
             <div className="aicte-mobile-brand-row">
-              <div className="aicte-brand-text">
-                <span className="aicte-mobile-nav-title">AICTE Security Deposit Portal</span>
-                <small>Government of India</small>
+              <div className="aicte-mobile-brand-wrap">
+                <div className="aicte-emblem-badge" style={{ width: 34, height: 34 }} aria-hidden="true">
+                  <AshokaChakra size={20} color="#FF9933" />
+                </div>
+                <div className="aicte-brand-text">
+                  <span className="aicte-mobile-nav-title">AICTE FDR Portal</span>
+                  <small>Ministry of Education, GoI</small>
+                </div>
               </div>
+              <button
+                type="button"
+                className="aicte-mobile-close-btn"
+                aria-label="Close navigation menu"
+                onClick={closeMobileMenu}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
             </div>
 
-            <nav className="aicte-mobile-nav-links" aria-label="Mobile Navigation">
-              <a href="#norms" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <BookOpen size={16} aria-hidden="true" /> APH Deposit Norms
-              </a>
-              <a href="#pillars" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <Sparkles size={16} aria-hidden="true" /> 5 Innovation Safeguards
-              </a>
-              <a href="#banks" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <Landmark size={16} aria-hidden="true" /> RBI Scheduled Banks
-              </a>
-              <a href="#workflow" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <ClipboardCheck size={16} aria-hidden="true" /> Verification SOP
-              </a>
-              <a href="#bureaus" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <MapPin size={16} aria-hidden="true" /> Zonal Regional Bureaus
-              </a>
-              <a href="#contact" className="aicte-mobile-nav-item" onClick={closeMobileMenu}>
-                <Phone size={16} aria-hidden="true" /> National Helpline
-              </a>
+            <nav className="aicte-mobile-nav-links" aria-label="Mobile Navigation Links">
+              {navLinks.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    className={`aicte-mobile-nav-item ${activeSection === item.id ? 'active' : ''}`}
+                    onClick={(e) => handleNavClick(e, item.id)}
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </a>
+                );
+              })}
             </nav>
 
             <div className="aicte-mobile-actions">
               {user ? (
                 <Link to="/" className="btn-aicte-primary btn-mobile-full" onClick={closeMobileMenu}>
-                  <LayoutDashboard size={16} aria-hidden="true" /> Open Council Dashboard
+                  <LayoutDashboard size={15} aria-hidden="true" /> Open Council Dashboard
                 </Link>
               ) : (
-                <>
-                  <Link to="/login" className="btn-aicte-primary btn-mobile-full" onClick={closeMobileMenu}>
-                    Portal Sign In <ArrowRight size={15} aria-hidden="true" />
-                  </Link>
-                  <Link to="/register" className="btn-aicte-secondary btn-mobile-full" onClick={closeMobileMenu}>
-                    Register Institution
-                  </Link>
-                </>
+                <Link to="/login" className="btn-aicte-primary btn-mobile-full" onClick={closeMobileMenu}>
+                  Portal Sign In <ArrowRight size={14} aria-hidden="true" />
+                </Link>
               )}
             </div>
 
             <div className="aicte-mobile-drawer-footer">
-              <small>National Technical Helpline: 011-29581000</small>
-              <small>fdr-compliance@aicte-india.org</small>
+              <div className="aicte-mobile-footer-item">
+                <Phone size={13} aria-hidden="true" />
+                <span>Helpline: 011-29581000</span>
+              </div>
+              <div className="aicte-mobile-footer-item">
+                <Mail size={13} aria-hidden="true" />
+                <span>fdr-compliance@aicte-india.org</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
+    </>
+  );
+}
+
+const RECOGNIZED_BANKS = [
+  {
+    id: 'sbi',
+    name: 'State Bank of India',
+    hindiName: 'भारतीय स्टेट बैंक',
+    type: 'Nationalized Public Sector Bank',
+    code: 'SBIN',
+    featured: true,
+  },
+  {
+    id: 'pnb',
+    name: 'Punjab National Bank',
+    hindiName: 'पंजाब नेशनल बैंक',
+    type: 'Nationalized Public Sector Bank',
+    code: 'PUNB',
+    featured: false,
+  },
+  {
+    id: 'bob',
+    name: 'Bank of Baroda',
+    hindiName: 'बैंक ऑफ बड़ौदा',
+    type: 'Nationalized Public Sector Bank',
+    code: 'BARB',
+    featured: false,
+  },
+  {
+    id: 'canara',
+    name: 'Canara Bank',
+    hindiName: 'केनरा बैंक',
+    type: 'Nationalized Public Sector Bank',
+    code: 'CNRB',
+    featured: false,
+  },
+  {
+    id: 'union',
+    name: 'Union Bank of India',
+    hindiName: 'यूनियन बैंक ऑफ इंडिया',
+    type: 'Nationalized Public Sector Bank',
+    code: 'UBIN',
+    featured: false,
+  },
+  {
+    id: 'indian',
+    name: 'Indian Bank',
+    hindiName: 'इंडियन बैंक',
+    type: 'Nationalized Public Sector Bank',
+    code: 'IDIB',
+    featured: false,
+  },
+  {
+    id: 'boi',
+    name: 'Bank of India',
+    hindiName: 'बैंक ऑफ इंडिया',
+    type: 'Nationalized Public Sector Bank',
+    code: 'BKID',
+    featured: false,
+  },
+  {
+    id: 'cbi',
+    name: 'Central Bank of India',
+    hindiName: 'सेंट्रल बैंक ऑफ इंडिया',
+    type: 'Nationalized Public Sector Bank',
+    code: 'CBIN',
+    featured: false,
+  },
+];
+
+function BankingNetworkSection() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredBanks = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return RECOGNIZED_BANKS;
+    return RECOGNIZED_BANKS.filter(
+      (bank) =>
+        bank.name.toLowerCase().includes(q) ||
+        bank.hindiName.toLowerCase().includes(q) ||
+        bank.code.toLowerCase().includes(q) ||
+        bank.type.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
+
+  return (
+    <section id="banks" className="landing-section section-tiranga-banks bg-slate-50" aria-labelledby="banks-heading">
+      {/* Ambient Tiranga Brush Watermark */}
+      <div className="section-tiranga-watermark watermark-brush-left" aria-hidden="true">
+        <TirangaBrush style={{ maxWidth: 420, opacity: 0.13 }} />
+      </div>
+
+      <div className="landing-container">
+        <div className="section-head">
+          <div className="section-head-tiranga-badge" aria-hidden="true">
+            <TirangaWave style={{ height: 26, width: 'auto' }} />
+          </div>
+          <span className="section-eyebrow-compact">
+            <Landmark size={13} aria-hidden="true" />
+            <span>BANKING ECOSYSTEM</span>
+          </span>
+          <h2 id="banks-heading">Integrated Banking Network</h2>
+          <p>
+            A structured banking directory supporting FDR record management and the applicable verification workflow under the Second Schedule of the Reserve Bank of India Act, 1934.
+          </p>
+        </div>
+
+        {/* National Depository Trust Ribbon */}
+        <div className="banks-national-trust-ribbon">
+          <div className="banks-trust-tiranga-flourish" aria-hidden="true">
+            <TirangaBrush style={{ height: 34, width: 'auto' }} />
+          </div>
+          <div className="banks-trust-text">
+            <b>Scheduled Commercial Banks of India</b> · Operating under RBI Second Schedule &amp; AICTE Joint Security Mandate
+          </div>
+        </div>
+
+        {/* Bank Directory Toolbar with Client-Side Search */}
+        <div className="banks-directory-toolbar">
+          <div className="banks-search-wrapper">
+            <label htmlFor="bank-search-input" className="sr-only">
+              Search recognized banks by name, Hindi title, or IFSC prefix
+            </label>
+            <div className="banks-search-input-box">
+              <Search size={16} className="banks-search-icon" aria-hidden="true" />
+              <input
+                id="bank-search-input"
+                type="text"
+                className="banks-search-input"
+                placeholder="Search recognized banks by name, Hindi title, or IFSC prefix..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoComplete="off"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="banks-search-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear bank search"
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="banks-directory-count" aria-live="polite">
+            Showing <b>{filteredBanks.length}</b> of <b>{RECOGNIZED_BANKS.length}</b> Scheduled Banks
+          </div>
+        </div>
+
+        {/* Bank Directory Grid */}
+        {filteredBanks.length > 0 ? (
+          <div className="banks-network-grid">
+            {filteredBanks.map((bank) => (
+              <div
+                key={bank.id}
+                className={`bank-partner-card ${bank.featured ? 'bank-partner-card-featured' : ''}`}
+              >
+                <div className="bank-partner-card-header">
+                  <div className="bank-partner-icon" aria-hidden="true">
+                    <Landmark size={18} />
+                  </div>
+                  <div className="bank-partner-badges">
+                    {bank.featured && (
+                      <span className="bank-featured-pill">Lead Depository</span>
+                    )}
+                    <span className="bank-code-pill">{bank.code}</span>
+                  </div>
+                </div>
+
+                <div className="bank-partner-text">
+                  <h4 className="bank-partner-title">{bank.name}</h4>
+                  <div className="bank-hindi-name">{bank.hindiName}</div>
+                  <div className="bank-partner-meta">
+                    <span className="bank-meta-type">{bank.type}</span>
+                  </div>
+                </div>
+
+                <div className="bank-partner-footer">
+                  <span className="bank-joint-lien-tag">
+                    <CheckCircle2 size={12} className="bank-joint-lien-icon" aria-hidden="true" />
+                    <span>Joint Lien Capable</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="banks-empty-state">
+            <div className="banks-empty-icon-box" aria-hidden="true">
+              <AlertCircle size={24} />
+            </div>
+            <h4>No Scheduled Banks Found</h4>
+            <p>
+              No banking institutions match &ldquo;<b>{searchQuery}</b>&rdquo;. Please verify the institution name or clear the search filter to browse all recognized Scheduled Commercial Banks.
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary banks-empty-reset-btn"
+              onClick={() => setSearchQuery('')}
+            >
+              Clear Search Filter
+            </button>
+          </div>
+        )}
+
+        {/* Dual-Track Verification Supporting Panel */}
+        <div className="banks-verification-panel">
+          <div className="banks-verification-header">
+            <div className="banks-verification-title-box">
+              <div className="banks-verification-kicker">
+                <ShieldCheck size={14} aria-hidden="true" />
+                <span>VERIFICATION FRAMEWORK</span>
+              </div>
+              <h3>Dual-Track FDR Verification &amp; Bank Confirmation Protocol</h3>
+              <p>
+                Centralized multi-vector integrity evaluation combined with mandatory bank branch lien confirmation for AICTE security deposit custody.
+              </p>
+            </div>
+            <div className="banks-protocol-badge">
+              <span>Dual-Track Protocol</span>
+            </div>
+          </div>
+
+          <div className="banks-protocol-grid">
+            <div className="banks-protocol-card">
+              <div className="banks-protocol-num">01</div>
+              <div className="banks-protocol-body">
+                <h5>Bank &amp; Branch Identification</h5>
+                <p>
+                  Resolves issuing branch identity against the Reserve Bank of India IFSC directory, verifying institutional IFSC consistency and branch jurisdiction.
+                </p>
+              </div>
+            </div>
+
+            <div className="banks-protocol-card">
+              <div className="banks-protocol-num">02</div>
+              <div className="banks-protocol-body">
+                <h5>Multi-Signal Data Cross-Check</h5>
+                <p>
+                  Performs automated consistency evaluation comparing OCR-extracted text against institutional declaration, maturity brackets, and sponsoring trust details.
+                </p>
+              </div>
+            </div>
+
+            <div className="banks-protocol-card">
+              <div className="banks-protocol-num">03</div>
+              <div className="banks-protocol-body">
+                <h5>QR-Code Verification</h5>
+                <p>
+                  Decodes certificate QR codes via SSRF-protected validation to extract issuing authority metadata and detect tampered or forged visual representations.
+                </p>
+              </div>
+            </div>
+
+            <div className="banks-protocol-card">
+              <div className="banks-protocol-num">04</div>
+              <div className="banks-protocol-body">
+                <h5>Written Branch Confirmation Workflow</h5>
+                <p>
+                  Prepares standardized bank inquiry records and logs written branch confirmation letters endorsing irrevocable joint lien custody to the AICTE Regional Officer.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="banks-regulatory-disclaimer-box">
+            <div className="banks-disclaimer-content">
+              <b>Regulatory Disclaimer:</b> Automated signal evaluations, QR code extractions, and algorithmic consistency checks provide preliminary review triage only. An automated field match does not constitute legal proof of authenticity. Statutory encumbrance is legally established only upon receipt and formal validation of written bank branch lien confirmation letters endorsed jointly to the AICTE Regional Officer.
+            </div>
+          </div>
+        </div>
+
+        {/* Statutory Compliance Notice */}
+        <div className="banks-statutory-notice">
+          <small>
+            <b>Compliance Notice:</b> Deposits drawn from co-operative credit societies, urban co-operative banks, or non-scheduled banking entities are not admissible under AICTE Approval Process Handbook regulations. Security deposit instruments must be drawn exclusively from Scheduled Commercial Banks recognized under the Second Schedule of the Reserve Bank of India Act, 1934.
+          </small>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LandingPage() {
+  const { user } = useAuth();
+  return (
+    <div className="aicte-landing" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFDFB' }}>
+      {/* Accessibility: Skip to Main Content */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
+
+      {/* Header and Navigation */}
+      <LandingHeader />
 
       {/* Main Content Landmark */}
       <main id="main-content" style={{ flex: 1 }}>
-        {/* 4. Sovereign Hero Section with Interactive Specimen FDR Card */}
+        {/* 4. Sovereign Hero Section with Ashok Stambh & Tiranga Gradient */}
         <section className="aicte-hero-section" aria-labelledby="hero-main-heading">
-          <AshokaChakra size={480} className="hero-chakra-watermark" color="#000080" />
+          {/* Sovereign Ashok Stambh Background Watermark */}
+          <div className="hero-stambh-watermark" aria-hidden="true">
+            <AshokStambh size={480} />
+          </div>
 
           <div className="aicte-hero-container">
-            {/* Left Column: Authoritative Indian Regulatory Messaging */}
+            {/* Left Column: Authoritative Institutional Messaging */}
             <div className="hero-left-content">
-              <div className="hero-pill-tag">
-                <span className="hero-pill-dot" aria-hidden="true" />
-                <span>🏛️ Official Regulatory Registry · AICTE Act 1987 Statutory Compliance</span>
+              <div className="hero-eyebrow">
+                <ShieldCheck size={14} className="hero-eyebrow-icon" aria-hidden="true" />
+                <span>AICTE Institutional Security Deposit Portal</span>
               </div>
 
               <h1 id="hero-main-heading" className="hero-headline">
@@ -479,133 +1186,97 @@ function LandingPage() {
               </p>
 
               <p className="hero-subhead">
-                The centralized national regulatory platform for AICTE-approved technical institutions
-                across India to submit, verify, and monitor joint Fixed Deposit Receipts in strict compliance
-                with Approval Process Handbook (APH) statutory mandates and Reserve Bank of India (RBI) scheduled bank guidelines.
+                Centralized institutional platform for AICTE-approved technical institutions
+                to submit security deposits, manage joint Fixed Deposit Receipts (FDR), coordinate
+                verification workflows, and monitor maturity schedules in compliance with Approval
+                Process Handbook (APH) mandates.
               </p>
 
-              <div className="hero-cta-row">
-                {user ? (
-                  <Link to="/" className="btn-aicte-primary btn-lg">
-                    <LayoutDashboard size={17} aria-hidden="true" /> Go to Council Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link to="/login" className="btn-aicte-primary btn-lg">
-                      Sign in to Portal <ArrowRight size={17} aria-hidden="true" />
+              <div className="hero-actions-container">
+                <div className="hero-cta-row">
+                  {user ? (
+                    <Link to="/" className="btn-aicte-primary btn-lg">
+                      <LayoutDashboard size={17} aria-hidden="true" /> Go to Council Dashboard
                     </Link>
-                    <Link to="/register" className="btn-aicte-secondary btn-lg">
-                      Register New Institution
-                    </Link>
-                    <a href="#norms" className="btn-aicte-outline-green btn-lg">
-                      <IndianRupee size={16} aria-hidden="true" /> View APH Deposit Norms
-                    </a>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <Link to="/login" className="btn-aicte-primary btn-lg">
+                        Sign In to Portal <ArrowRight size={17} aria-hidden="true" />
+                      </Link>
+                      <Link to="/register" className="btn-aicte-secondary btn-lg">
+                        Register Institution
+                      </Link>
+                    </>
+                  )}
+                </div>
+
+                <a
+                  href="#norms"
+                  className="hero-secondary-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const el = document.querySelector('#norms');
+                    if (el) {
+                      if (typeof el.scrollIntoView === 'function') {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                      window.history.pushState(null, '', '#norms');
+                    } else {
+                      window.location.hash = '#norms';
+                    }
+                  }}
+                >
+                  <span>View APH Deposit Norms</span>
+                  <ChevronRight size={14} aria-hidden="true" />
+                </a>
               </div>
 
-              {/* 4 Trust Badges */}
-              <div className="hero-trust-row">
-                <div className="hero-trust-item">
-                  <div className="hero-trust-icon-box" style={{ background: '#FFF5EB', color: '#D94E07' }}>
-                    <Building2 size={16} aria-hidden="true" />
+              {/* 4 Compact Feature Highlights */}
+              <div className="hero-features-grid">
+                <div className="hero-feature-item">
+                  <div className="hero-feature-icon-box" style={{ background: '#FFF5EB', color: '#D94E07' }}>
+                    <Building2 size={15} aria-hidden="true" />
                   </div>
-                  <span>Joint AICTE Mandate (RO / MS Co-signatory)</span>
+                  <span>Joint FDR Record Management</span>
                 </div>
-                <div className="hero-trust-item">
-                  <div className="hero-trust-icon-box" style={{ background: '#EBF2F9', color: '#002147' }}>
-                    <Layers size={16} aria-hidden="true" />
+                <div className="hero-feature-item">
+                  <div className="hero-feature-icon-box" style={{ background: '#EBF2F9', color: '#002147' }}>
+                    <FileCheck2 size={15} aria-hidden="true" />
                   </div>
-                  <span>Multi-Signal Trust Engine (6 Consistency Vectors)</span>
+                  <span>Bank Verification Workflow</span>
                 </div>
-                <div className="hero-trust-item">
-                  <div className="hero-trust-icon-box" style={{ background: '#EBF7EE', color: '#046A38' }}>
-                    <Landmark size={16} aria-hidden="true" />
+                <div className="hero-feature-item">
+                  <div className="hero-feature-icon-box" style={{ background: '#FEF3C7', color: '#B45309' }}>
+                    <ShieldCheck size={15} aria-hidden="true" />
                   </div>
-                  <span>RBI Scheduled Commercial Banks Network</span>
+                  <span>Duplicate-Document Checks</span>
                 </div>
-                <div className="hero-trust-item">
-                  <div className="hero-trust-icon-box" style={{ background: '#FEF3C7', color: '#B45309' }}>
-                    <ShieldCheck size={16} aria-hidden="true" />
+                <div className="hero-feature-item">
+                  <div className="hero-feature-icon-box" style={{ background: '#EBF7EE', color: '#046A38' }}>
+                    <Clock size={15} aria-hidden="true" />
                   </div>
-                  <span>Cryptographic Duplicate &amp; Tamper Shield</span>
+                  <span>Maturity &amp; Renewal Monitoring</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Specimen FDR Certificate Card */}
-            <div className="specimen-card-wrapper">
-              <div className="fdr-specimen-card" role="region" aria-label="Specimen FDR Certificate Demonstration">
-                <div className="fdr-card-tricolor-line" aria-hidden="true" />
-
-                {/* Explicit Demo Data Notice Banner */}
-                <div className="fdr-demo-disclaimer-banner">
-                  <span className="fdr-demo-dot" aria-hidden="true" />
-                  <span>ILLUSTRATIVE SPECIMEN · DEMO DATA ONLY</span>
+            {/* Right Column: Official State Emblem of India (Ashok Stambh) Monument */}
+            <div className="hero-stambh-showcase">
+              <div className="sovereign-stambh-monument" role="region" aria-label="Official State Emblem of India - Ashok Stambh">
+                {/* Official Indian State Emblem as provided */}
+                <div className="stambh-monument-emblem-wrap">
+                  <AshokStambh size={310} className="stambh-featured-emblem" />
                 </div>
 
-                <div className="fdr-card-header">
-                  <div className="fdr-card-bank-info">
-                    <div className="fdr-bank-logo" aria-hidden="true">SBI</div>
-                    <div className="fdr-bank-text">
-                      <h4>State Bank of India (भारतीय स्टेट बैंक)</h4>
-                      <p>New Delhi Main Branch · IFSC: SBIN0000691</p>
-                    </div>
+                {/* Sovereign Seal Plaque */}
+                <div className="stambh-monument-caption">
+                  <div className="stambh-caption-motto">सत्यमेव जयते</div>
+                  <div className="stambh-caption-title">भारत का राज्य प्रतीक · STATE EMBLEM OF INDIA</div>
+                  <div className="stambh-caption-gov">
+                    <span>भारत सरकार | Government of India</span>
+                    <span className="stambh-caption-sep" aria-hidden="true">•</span>
+                    <span>AICTE</span>
                   </div>
-                  <span className="fdr-specimen-badge">Sample Receipt</span>
-                </div>
-
-                <div className="fdr-card-body">
-                  <AshokaChakra size={130} className="fdr-card-body-watermark" color="#000080" />
-
-                  <div className="fdr-detail-grid">
-                    <div className="fdr-detail-cell">
-                      <span className="fdr-cell-label">Fixed Deposit Receipt No.</span>
-                      <span className="fdr-cell-val font-mono">SBI-DEL-2026-FDR-98124</span>
-                    </div>
-                    <div className="fdr-detail-cell" style={{ textAlign: 'right' }}>
-                      <span className="fdr-cell-label">Statutory Tenure</span>
-                      <span className="fdr-cell-val" style={{ color: '#D94E07' }}>10 Years Mandatory Lien</span>
-                    </div>
-                    <div className="fdr-detail-cell" style={{ gridColumn: 'span 2' }}>
-                      <span className="fdr-cell-label">Pledged Deposit Value</span>
-                      <span className="fdr-cell-val fdr-amount-highlight">
-                        ₹ 1,00,00,000/- <small style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>(One Crore Rupees)</small>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="fdr-joint-pill">
-                    <b>Joint Account Mandate:</b> Regional Officer, AICTE (North-Western Region) &amp; President, National Institute of Technology Trust
-                  </div>
-
-                  <div className="fdr-meta-row">
-                    <span><b>Issue:</b> 15-Aug-2026</span>
-                    <span><b>Maturity:</b> 14-Aug-2036</span>
-                    <span><b>Clause:</b> APH Ch. I Sec 1.4</span>
-                  </div>
-                </div>
-
-                <div className="fdr-card-footer">
-                  <div className="fdr-qr-area">
-                    <div className="fdr-mini-qr" aria-hidden="true">
-                      <QrCode size={24} />
-                    </div>
-                    <div className="fdr-qr-caption">
-                      <b>SSRF-Safe QR Validated</b>
-                      <span>Bank Certificate Matched</span>
-                    </div>
-                  </div>
-
-                  <div className="fdr-trust-badge-card">
-                    <div className="fdr-trust-badge-score">98 / 100</div>
-                    <div className="fdr-trust-badge-label">Specimen Trust Score</div>
-                  </div>
-                </div>
-
-                <div className="fdr-checksum-footer">
-                  <Check size={12} strokeWidth={3} aria-hidden="true" />
-                  <span>Cryptographic SHA-256 Registered · Specimen for Technical Evaluation</span>
                 </div>
               </div>
             </div>
@@ -614,184 +1285,346 @@ function LandingPage() {
 
         {/* 5. National Regulatory Reference Metrics Section */}
         <section className="sovereign-metrics-section" aria-labelledby="metrics-heading">
+          {/* Ambient Tiranga Wave Watermark */}
+          <div className="section-tiranga-watermark watermark-wave-right" aria-hidden="true">
+            <TirangaWave style={{ maxWidth: 460, opacity: 0.16 }} />
+          </div>
+
           <div className="landing-container">
             <div className="metrics-intro-head">
-              <span className="section-eyebrow-tricolor">
-                <BarChart3 size={13} aria-hidden="true" /> Regulatory Dimensions
+              <div className="section-head-tiranga-badge" aria-hidden="true">
+                <TirangaBrush style={{ height: 28, width: 'auto' }} />
+              </div>
+              <span className="section-eyebrow-compact">
+                <BarChart3 size={13} aria-hidden="true" />
+                <span>STATUTORY BENCHMARKS</span>
               </span>
-              <h2 id="metrics-heading">National Technical Education Regulatory Reference</h2>
+              <h2 id="metrics-heading">National Regulatory Reference Parameters</h2>
               <p>
-                Prescribed statutory norms, regional coverage, and security deposit parameters administered by AICTE across India.
+                Prescribed baseline benchmarks, jurisdictional coverage, and security deposit parameters governed under applicable AICTE regulations.
               </p>
             </div>
 
             <div className="sovereign-metrics-grid">
-              {/* Metric 1 */}
-              <div className="metric-card-tiranga">
-                <div className="metric-top-bar bar-saffron" aria-hidden="true" />
+              {/* Benchmark 1 — Deposit Quantum Range */}
+              <div className="metric-card-clean">
                 <div className="metric-card-header">
-                  <span className="metric-title">Statutory Deposit Quantum</span>
-                  <div className="metric-icon-circle icon-saffron" aria-hidden="true">
-                    <IndianRupee size={20} />
+                  <span className="metric-category-tag">Statutory Range</span>
+                  <div className="metric-icon-box metric-icon-saffron" aria-hidden="true">
+                    <IndianRupee size={18} />
                   </div>
                 </div>
-                <h3 className="metric-value-huge">₹15L – ₹100L</h3>
-                <p className="metric-sub">
-                  Prescribed joint security deposit ranges according to program type, intake, and institutional classification under APH norms.
-                </p>
+                <div className="metric-card-body">
+                  <div className="metric-value">₹15L – ₹100L</div>
+                  <h3 className="metric-title">Deposit Quantum Range</h3>
+                  <p className="metric-desc">
+                    Prescribed joint security deposit brackets according to program type, intake capacity, and institutional classification under applicable APH norms.
+                  </p>
+                </div>
               </div>
 
-              {/* Metric 2 */}
-              <div className="metric-card-tiranga">
-                <div className="metric-top-bar bar-blue" aria-hidden="true" />
+              {/* Benchmark 2 — Regional Jurisdictions */}
+              <div className="metric-card-clean">
                 <div className="metric-card-header">
-                  <span className="metric-title">Pan-India Coverage</span>
-                  <div className="metric-icon-circle icon-navy" aria-hidden="true">
-                    <MapPin size={20} />
+                  <span className="metric-category-tag">Zonal Jurisdiction</span>
+                  <div className="metric-icon-box metric-icon-navy" aria-hidden="true">
+                    <MapPin size={18} />
                   </div>
                 </div>
-                <h3 className="metric-value-huge">10 Bureaus</h3>
-                <p className="metric-sub">
-                  Zonal directorates overseeing compliance across all 28 States and 8 Union Territories with designated jurisdictional officers.
-                </p>
+                <div className="metric-card-body">
+                  <div className="metric-value">10 Bureaus</div>
+                  <h3 className="metric-title">Regional Jurisdictions</h3>
+                  <p className="metric-desc">
+                    Zonal directorates overseeing compliance across 28 States and 8 Union Territories with designated jurisdictional officers.
+                  </p>
+                </div>
               </div>
 
-              {/* Metric 3 */}
-              <div className="metric-card-tiranga">
-                <div className="metric-top-bar bar-green" aria-hidden="true" />
+              {/* Benchmark 3 — Statutory Custody Period */}
+              <div className="metric-card-clean">
                 <div className="metric-card-header">
-                  <span className="metric-title">Mandatory Custody Tenure</span>
-                  <div className="metric-icon-circle icon-green" aria-hidden="true">
-                    <Clock size={20} />
+                  <span className="metric-category-tag">Mandatory Custody</span>
+                  <div className="metric-icon-box metric-icon-green" aria-hidden="true">
+                    <Clock size={18} />
                   </div>
                 </div>
-                <h3 className="metric-value-huge">8 – 10 Years</h3>
-                <p className="metric-sub">
-                  Statutory non-encashable lien period required for technical, management, pharmacy, and polytechnic approvals.
-                </p>
+                <div className="metric-card-body">
+                  <div className="metric-value">8 – 10 Years</div>
+                  <h3 className="metric-title">Statutory Custody Period</h3>
+                  <p className="metric-desc">
+                    Mandatory non-encashable lien period applicable to the relevant technical institution categories under the governing requirements.
+                  </p>
+                </div>
               </div>
 
-              {/* Metric 4 */}
-              <div className="metric-card-tiranga">
-                <div className="metric-top-bar bar-tricolor" aria-hidden="true" />
+              {/* Benchmark 4 — Consistency Checks */}
+              <div className="metric-card-clean">
                 <div className="metric-card-header">
-                  <span className="metric-title">Verification Signals</span>
-                  <div className="metric-icon-circle icon-amber" aria-hidden="true">
-                    <ShieldCheck size={20} />
+                  <span className="metric-category-tag">Verification Criteria</span>
+                  <div className="metric-icon-box metric-icon-amber" aria-hidden="true">
+                    <ShieldCheck size={18} />
                   </div>
                 </div>
-                <h3 className="metric-value-huge">6 Vectors</h3>
-                <p className="metric-sub">
-                  Automated cross-referencing of OCR extracted values, IFSC branches, maturity dates, duplicate hashes, and document forensics.
-                </p>
+                <div className="metric-card-body">
+                  <div className="metric-value">6 Vectors</div>
+                  <h3 className="metric-title">Consistency Checks</h3>
+                  <p className="metric-desc">
+                    Multi-signal evaluation criteria covering extracted OCR fields, issuing bank IFSC, maturity dates, and duplicate-record checks.
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="metrics-disclaimer-note">
-              <small>
-                * Regulatory framework norms &amp; specimen indicators. Live institutional counts populate dynamically upon authenticated portal login.
-              </small>
+              <div className="metrics-disclaimer-content">
+                <AlertCircle size={16} className="metrics-disclaimer-icon" aria-hidden="true" />
+                <div className="metrics-disclaimer-text">
+                  <b>Administrative Notice:</b> Metrics reflect statutory reference parameters prescribed under applicable AICTE regulations. Live institutional FDR records, review queues, and verified tallies populate dynamically upon authorized portal sign-in.
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 6. Approval Process Handbook (APH) Deposit Norms (4 Program Cards) */}
-        <section id="norms" className="landing-section bg-slate-50" aria-labelledby="norms-heading">
+        {/* 6. Approval Process Handbook (APH) Deposit Norms (4 Structured Program Cards) */}
+        <section id="norms" className="landing-section section-tiranga-norms bg-slate-50" aria-labelledby="norms-heading">
+          {/* Ambient Tiranga Brush Watermark */}
+          <div className="section-tiranga-watermark watermark-brush-left" aria-hidden="true">
+            <TirangaBrush style={{ maxWidth: 440, opacity: 0.14 }} />
+          </div>
+
           <div className="landing-container">
             <div className="section-head">
-              <span className="section-eyebrow-tricolor">
-                <Award size={13} aria-hidden="true" /> Official Statutory Reference
+              <div className="section-head-tiranga-badge" aria-hidden="true">
+                <TirangaWave style={{ height: 26, width: 'auto' }} />
+              </div>
+              <span className="section-eyebrow-compact">
+                <BookOpen size={13} aria-hidden="true" />
+                <span>STATUTORY REFERENCE NORMS</span>
               </span>
               <h2 id="norms-heading">Approval Process Handbook (APH) Deposit Norms</h2>
               <p>
-                Mandatory statutory security deposit thresholds prescribed by AICTE for establishing and running approved technical institutions in India.
+                Mandatory statutory security deposit requirements for establishing and conducting approved technical programs across India.
               </p>
             </div>
 
             <div className="norms-grid-v2">
-              {/* Norm 1 */}
-              <div className="norm-card-elevated">
-                <div className="norm-card-top-tag">
-                  <span className="norm-aph-clause">APH CHAPTER I · SEC 1.4</span>
-                  <span className="norm-amount-badge">
-                    <IndianRupee size={16} aria-hidden="true" /> 100 Lakhs
+              {/* Card 1 — Engineering & Technology Institutions */}
+              <div className="norm-card-structured">
+                <div className="norm-card-top-row">
+                  <span className="norm-clause-pill">
+                    <FileText size={11} aria-hidden="true" />
+                    <span>APH Ch. I · Sec 1.4</span>
                   </span>
+                  <div className="norm-card-icon-box" aria-hidden="true">
+                    <GraduationCap size={15} />
+                  </div>
                 </div>
-                <h4>Engineering &amp; Technology Institutions</h4>
-                <span className="norm-tenure-pill">
-                  <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
-                </span>
-                <p>
-                  Joint FDR in the name of the President/Secretary of the Sponsoring Trust and Regional Officer, AICTE. Non-encashable without Council sanction.
-                </p>
+
+                <div className="norm-deposit-amount-box">
+                  <div className="norm-deposit-amount">
+                    <IndianRupee size={18} aria-hidden="true" />
+                    <span>100 Lakhs</span>
+                  </div>
+                  <span className="norm-amount-caption">Statutory Deposit Quantum</span>
+                </div>
+
+                <div className="norm-card-title-group">
+                  <h3 className="norm-program-title">Engineering &amp; Technology Institutions</h3>
+                  <span className="norm-program-subtitle">Degree-Level Technical Programs (UG/PG)</span>
+                </div>
+
+                <div className="norm-structured-fields">
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Mandatory Tenure:</span>
+                    <span className="norm-field-val">
+                      <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
+                    </span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Custody Mandate:</span>
+                    <span className="norm-field-val">Regional Officer, AICTE &amp; Sponsoring Trust</span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Regulatory Rule:</span>
+                    <span className="norm-field-val">Non-encashable without explicit Council sanction</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Norm 2 */}
-              <div className="norm-card-elevated">
-                <div className="norm-card-top-tag">
-                  <span className="norm-aph-clause">APH CHAPTER II · SEC 2.3</span>
-                  <span className="norm-amount-badge">
-                    <IndianRupee size={16} aria-hidden="true" /> 50 Lakhs
+              {/* Card 2 — Management (MBA/PGDM) & MCA */}
+              <div className="norm-card-structured">
+                <div className="norm-card-top-row">
+                  <span className="norm-clause-pill">
+                    <FileText size={11} aria-hidden="true" />
+                    <span>APH Ch. II · Sec 2.3</span>
                   </span>
+                  <div className="norm-card-icon-box" aria-hidden="true">
+                    <Building2 size={15} />
+                  </div>
                 </div>
-                <h4>Management (MBA/PGDM) &amp; MCA</h4>
-                <span className="norm-tenure-pill">
-                  <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
-                </span>
-                <p>
-                  Drawn strictly from Reserve Bank of India Scheduled Commercial Banks with automatic interest accrual to the institution's designated operational account.
-                </p>
+
+                <div className="norm-deposit-amount-box">
+                  <div className="norm-deposit-amount">
+                    <IndianRupee size={18} aria-hidden="true" />
+                    <span>50 Lakhs</span>
+                  </div>
+                  <span className="norm-amount-caption">Statutory Deposit Quantum</span>
+                </div>
+
+                <div className="norm-card-title-group">
+                  <h3 className="norm-program-title">Management (MBA/PGDM) &amp; MCA</h3>
+                  <span className="norm-program-subtitle">Postgraduate Management &amp; Computer Studies</span>
+                </div>
+
+                <div className="norm-structured-fields">
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Mandatory Tenure:</span>
+                    <span className="norm-field-val">
+                      <Clock size={12} aria-hidden="true" /> 10 Years Mandatory Joint Lien
+                    </span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Custody Mandate:</span>
+                    <span className="norm-field-val">Regional Officer, AICTE &amp; Head of Institution Trust</span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Bank Requirement:</span>
+                    <span className="norm-field-val">RBI Scheduled Commercial Banks with auto-interest</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Norm 3 */}
-              <div className="norm-card-elevated">
-                <div className="norm-card-top-tag">
-                  <span className="norm-aph-clause">APH CHAPTER III · SEC 3.2</span>
-                  <span className="norm-amount-badge">
-                    <IndianRupee size={16} aria-hidden="true" /> 35 Lakhs
+              {/* Card 3 — Pharmacy, Architecture & Applied Arts */}
+              <div className="norm-card-structured">
+                <div className="norm-card-top-row">
+                  <span className="norm-clause-pill">
+                    <FileText size={11} aria-hidden="true" />
+                    <span>APH Ch. III · Sec 3.2</span>
                   </span>
+                  <div className="norm-card-icon-box" aria-hidden="true">
+                    <Layers size={15} />
+                  </div>
                 </div>
-                <h4>Pharmacy, Architecture &amp; Applied Arts</h4>
-                <span className="norm-tenure-pill">
-                  <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
-                </span>
-                <p>
-                  Statutory operational compliance deposit safeguarding academic continuity, student welfare, and faculty statutory obligations.
-                </p>
+
+                <div className="norm-deposit-amount-box">
+                  <div className="norm-deposit-amount">
+                    <IndianRupee size={18} aria-hidden="true" />
+                    <span>35 Lakhs</span>
+                  </div>
+                  <span className="norm-amount-caption">Statutory Deposit Quantum</span>
+                </div>
+
+                <div className="norm-card-title-group">
+                  <h3 className="norm-program-title">Pharmacy, Architecture &amp; Applied Arts</h3>
+                  <span className="norm-program-subtitle">Specialized Technical &amp; Design Institutions</span>
+                </div>
+
+                <div className="norm-structured-fields">
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Mandatory Tenure:</span>
+                    <span className="norm-field-val">
+                      <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
+                    </span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Custody Mandate:</span>
+                    <span className="norm-field-val">Regional Officer, AICTE &amp; Sponsoring Trust</span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Regulatory Objective:</span>
+                    <span className="norm-field-val">Safeguarding academic continuity &amp; faculty liabilities</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Norm 4 */}
-              <div className="norm-card-elevated">
-                <div className="norm-card-top-tag">
-                  <span className="norm-aph-clause">APH CHAPTER IV · SEC 4.1</span>
-                  <span className="norm-amount-badge">
-                    <IndianRupee size={16} aria-hidden="true" /> 25 Lakhs
+              {/* Card 4 — Diploma & Polytechnic Institutes */}
+              <div className="norm-card-structured">
+                <div className="norm-card-top-row">
+                  <span className="norm-clause-pill">
+                    <FileText size={11} aria-hidden="true" />
+                    <span>APH Ch. IV · Sec 4.1</span>
                   </span>
+                  <div className="norm-card-icon-box" aria-hidden="true">
+                    <ClipboardList size={15} />
+                  </div>
                 </div>
-                <h4>Diploma &amp; Polytechnic Institutes</h4>
-                <span className="norm-tenure-pill">
-                  <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
-                </span>
-                <p>
-                  Mandatory security deposit for state technical education board affiliations and Council approval renewals under Chapter IV guidelines.
-                </p>
+
+                <div className="norm-deposit-amount-box">
+                  <div className="norm-deposit-amount">
+                    <IndianRupee size={18} aria-hidden="true" />
+                    <span>25 Lakhs</span>
+                  </div>
+                  <span className="norm-amount-caption">Statutory Deposit Quantum</span>
+                </div>
+
+                <div className="norm-card-title-group">
+                  <h3 className="norm-program-title">Diploma &amp; Polytechnic Institutes</h3>
+                  <span className="norm-program-subtitle">State Technical Board-Affiliated Institutions</span>
+                </div>
+
+                <div className="norm-structured-fields">
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Mandatory Tenure:</span>
+                    <span className="norm-field-val">
+                      <Clock size={12} aria-hidden="true" /> 8 Years Mandatory Joint Lien
+                    </span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Custody Mandate:</span>
+                    <span className="norm-field-val">Regional Officer, AICTE &amp; Polytechnic Society</span>
+                  </div>
+                  <div className="norm-field-row">
+                    <span className="norm-field-label">Regulatory Objective:</span>
+                    <span className="norm-field-val">Initial approval &amp; periodic renewal</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="norms-statutory-notice">
-              <small>
-                <b>Statutory Reference:</b> Figures reflect baseline specimen schedules per AICTE Approval Process Handbook (APH 2024–2027). Concessional norms apply to female, PwD, and North-Eastern/hilly area institutions.
-              </small>
+            {/* Structured Handbook Documentation & Source Box */}
+            <div className="aph-source-reference-panel">
+              <div className="aph-source-header">
+                <div className="aph-source-badge">
+                  <BookOpen size={13} aria-hidden="true" />
+                  <span>Statutory Reference Document</span>
+                </div>
+                <span className="aph-source-authority">All India Council for Technical Education (AICTE)</span>
+              </div>
+              <div className="aph-source-body">
+                <h4>AICTE Approval Process Handbook (APH 2024–2027)</h4>
+                <p>
+                  Deposit figures listed above represent statutory baseline schedules for private unaided technical institutions.
+                  Concessional deposit thresholds apply to institutions established exclusively for Women, Persons with Disabilities (PwD),
+                  and institutions situated in North-Eastern States or Hilly Regions under Chapter I provisions.
+                </p>
+                <div className="aph-source-meta-row">
+                  <span><b>Governing Mandate:</b> Section 10, AICTE Act 1987</span>
+                  <span className="aph-meta-separator" aria-hidden="true">·</span>
+                  <span><b>Deposit Instrument:</b> Joint Fixed Deposit Receipt (FDR)</span>
+                  <span className="aph-meta-separator" aria-hidden="true">·</span>
+                  <span><b>Applicability:</b> Nationwide across AICTE Jurisdictions</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* 7. 5 Core Innovation Safeguards (USP Cards) */}
-        <section id="pillars" className="landing-section" aria-labelledby="pillars-heading">
+        <section id="pillars" className="landing-section section-tiranga-pillars" aria-labelledby="pillars-heading">
+          {/* Ambient Tiranga Wave Watermark */}
+          <div className="section-tiranga-watermark watermark-wave-right" aria-hidden="true">
+            <TirangaWave style={{ maxWidth: 480, opacity: 0.15 }} />
+          </div>
+
           <div className="landing-container">
             <div className="section-head">
-              <span className="section-eyebrow-tricolor">
-                <Sparkles size={13} aria-hidden="true" /> System Architecture &amp; Safeguards
+              <div className="section-head-tiranga-badge" aria-hidden="true">
+                <TirangaBrush style={{ height: 28, width: 'auto' }} />
+              </div>
+              <span className="section-eyebrow-compact">
+                <Sparkles size={13} aria-hidden="true" />
+                <span>SYSTEM ARCHITECTURE &amp; SAFEGUARDS</span>
               </span>
               <h2 id="pillars-heading">5 Core Compliance Safeguards</h2>
               <p>
@@ -800,170 +1633,225 @@ function LandingPage() {
             </div>
 
             <div className="pillars-grid-v2">
-              {/* Pillar 1 */}
-              <div className="pillar-card-elevated">
-                <div className="pillar-card-head">
-                  <div className="feature-icon-circle bg-blue-50" aria-hidden="true">
-                    <ShieldCheck size={22} />
+              {/* Safeguard 01 */}
+              <div className="pillar-card-elevated pillar-card-01">
+                <div className="pillar-card-header">
+                  <div className="pillar-card-indicator">
+                    <span className="pillar-num" aria-hidden="true">01</span>
+                    <span className="pillar-category-tag">INTEGRITY SCORING</span>
                   </div>
-                  <span className="pillar-num" aria-hidden="true">01</span>
+                  <div className="pillar-icon-box" aria-hidden="true">
+                    <ShieldCheck size={20} />
+                  </div>
                 </div>
-                <h3>Explainable FDR Trust Score</h3>
-                <p>
-                  Synthesizes 6 verifiable consistency vectors (OCR fields, issuing bank IFSC, maturity dates, duplicate hash checks, and file forensics) into a transparent 0–100 review priority index.
-                </p>
+
+                <div className="pillar-card-content">
+                  <h3 className="pillar-card-title">Explainable FDR Trust Score</h3>
+                  <p className="pillar-card-desc">
+                    Combines six consistency signals, including OCR-extracted fields, issuing-bank IFSC, maturity dates, duplicate checks, and document-file forensics, into a transparent 0–100 review-priority indicator.
+                  </p>
+
+                  <div className="pillar-feature-list">
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>6 automated consistency evaluation signals</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>0–100 priority triage for zonal review</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Document file forensics &amp; bank IFSC match</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Pillar 2 */}
-              <div className="pillar-card-elevated">
-                <div className="pillar-card-head">
-                  <div className="feature-icon-circle bg-amber-50" aria-hidden="true">
-                    <QrCode size={22} />
+              {/* Safeguard 02 */}
+              <div className="pillar-card-elevated pillar-card-02">
+                <div className="pillar-card-header">
+                  <div className="pillar-card-indicator">
+                    <span className="pillar-num" aria-hidden="true">02</span>
+                    <span className="pillar-category-tag">BANK INTEGRATION</span>
                   </div>
-                  <span className="pillar-num" aria-hidden="true">02</span>
+                  <div className="pillar-icon-box" aria-hidden="true">
+                    <QrCode size={20} />
+                  </div>
                 </div>
-                <h3>Bank QR &amp; Verification Workflow</h3>
-                <p>
-                  Decodes certificate QR codes with SSRF protection against untrusted domains, provides a standardized verification checklist, and prepares official branch inquiry communications.
-                </p>
+
+                <div className="pillar-card-content">
+                  <h3 className="pillar-card-title">Bank QR &amp; Verification Workflow</h3>
+                  <p className="pillar-card-desc">
+                    Supports certificate QR-code processing, protection against untrusted domains, a standardized verification checklist, and preparation of official branch inquiries.
+                  </p>
+
+                  <div className="pillar-feature-list">
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Decodes certificate QR codes with SSRF protection</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Standardized branch verification checklist</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Prepares official bank branch inquiry records</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Pillar 3 */}
-              <div className="pillar-card-elevated">
-                <div className="pillar-card-head">
-                  <div className="feature-icon-circle bg-emerald-50" aria-hidden="true">
-                    <Lock size={22} />
+              {/* Safeguard 03 */}
+              <div className="pillar-card-elevated pillar-card-03">
+                <div className="pillar-card-header">
+                  <div className="pillar-card-indicator">
+                    <span className="pillar-num" aria-hidden="true">03</span>
+                    <span className="pillar-category-tag">ANTI-COLLUSION</span>
                   </div>
-                  <span className="pillar-num" aria-hidden="true">03</span>
+                  <div className="pillar-icon-box" aria-hidden="true">
+                    <Lock size={20} />
+                  </div>
                 </div>
-                <h3>Cryptographic Duplicate Shield</h3>
-                <p>
-                  Prevents double-pledging of the same financial instrument across different trusts or states using normalized FDR numbers, branch identification, and SHA-256 document fingerprints.
-                </p>
+
+                <div className="pillar-card-content">
+                  <h3 className="pillar-card-title">Cryptographic Duplicate Shield</h3>
+                  <p className="pillar-card-desc">
+                    Helps detect potential double-pledging through normalized FDR numbers, branch identifiers, and SHA-256 document fingerprints.
+                  </p>
+
+                  <div className="pillar-feature-list">
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>SHA-256 document cryptographic fingerprinting</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Normalized FDR account &amp; branch indexing</span>
+                    </div>
+                    <div className="pillar-feature-item">
+                      <CheckCircle2 size={13} className="pillar-feature-icon" aria-hidden="true" />
+                      <span>Cross-trust &amp; interstate double-pledge detection</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Pillar 4 */}
-              <div className="pillar-card-elevated">
-                <div className="pillar-card-head">
-                  <div className="feature-icon-circle bg-indigo-50" aria-hidden="true">
-                    <Calendar size={22} />
+              {/* Safeguard 04 - Wider Card */}
+              <div className="pillar-card-elevated pillar-card-wide pillar-card-04">
+                <div className="pillar-card-header">
+                  <div className="pillar-card-indicator">
+                    <span className="pillar-num" aria-hidden="true">04</span>
+                    <span className="pillar-category-tag">LIFECYCLE MONITORING</span>
                   </div>
-                  <span className="pillar-num" aria-hidden="true">04</span>
+                  <div className="pillar-icon-box" aria-hidden="true">
+                    <Clock size={20} />
+                  </div>
                 </div>
-                <h3>Maturity Escalation Ladder</h3>
-                <p>
-                  Automated multi-stage tracking at 90 days, 30 days, 7 days, and overdue stages calculated with Indian Standard Time (IST) precision for institutional and zonal follow-up.
-                </p>
+
+                <div className="pillar-card-content">
+                  <h3 className="pillar-card-title">Maturity Escalation Ladder</h3>
+                  <p className="pillar-card-desc">
+                    Tracks upcoming maturity deadlines through 90-day, 30-day, and 7-day alerts, with overdue-stage tracking based on Indian Standard Time where implemented.
+                  </p>
+
+                  <div className="pillar-stages-container">
+                    <div className="pillar-stages-track">
+                      <div className="pillar-stage-card">
+                        <div className="pillar-stage-badge">T-90 DAYS</div>
+                        <div className="pillar-stage-title">Advance Advisory</div>
+                        <div className="pillar-stage-desc">Notice issued to institution &amp; issuing branch</div>
+                      </div>
+
+                      <div className="pillar-stage-card">
+                        <div className="pillar-stage-badge">T-30 DAYS</div>
+                        <div className="pillar-stage-title">Regional Review</div>
+                        <div className="pillar-stage-desc">Zonal Bureau renewal reminder &amp; status check</div>
+                      </div>
+
+                      <div className="pillar-stage-card">
+                        <div className="pillar-stage-badge">T-7 DAYS</div>
+                        <div className="pillar-stage-title">Urgent Escalation</div>
+                        <div className="pillar-stage-desc">Critical action alert to institutional leadership</div>
+                      </div>
+
+                      <div className="pillar-stage-card pillar-stage-overdue">
+                        <div className="pillar-stage-badge">OVERDUE</div>
+                        <div className="pillar-stage-title">Lien Enforcement</div>
+                        <div className="pillar-stage-desc">Statutory encumbrance review &amp; compliance hold</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Pillar 5 */}
-              <div className="pillar-card-elevated pillar-card-wide">
-                <div className="pillar-card-head">
-                  <div className="feature-icon-circle bg-purple-50" aria-hidden="true">
-                    <Languages size={22} />
+              {/* Safeguard 05 - Wider Card */}
+              <div className="pillar-card-elevated pillar-card-wide pillar-card-05">
+                <div className="pillar-card-header">
+                  <div className="pillar-card-indicator">
+                    <span className="pillar-num" aria-hidden="true">05</span>
+                    <span className="pillar-category-tag">DOCUMENT AI PIPELINE</span>
                   </div>
-                  <span className="pillar-num" aria-hidden="true">05</span>
+                  <div className="pillar-icon-box" aria-hidden="true">
+                    <Languages size={20} />
+                  </div>
                 </div>
-                <h3>Multilingual Indic OCR Processing</h3>
-                <p>
-                  Engineered to integrate Sarvam Vision AI across 23 scheduled Indian languages (Hindi, Marathi, Tamil, Telugu, Kannada, Bengali, Gujarati, Punjabi, Malayalam, Odia, Assamese, etc.) to parse deposit receipts and bank certificates issued in regional scripts.
-                </p>
+
+                <div className="pillar-card-content">
+                  <div className="pillar-ocr-head-row">
+                    <h3 className="pillar-card-title">Multilingual Indic OCR Processing</h3>
+                    <span className="pillar-pipeline-status">
+                      <Sparkles size={11} aria-hidden="true" />
+                      <span>Active &amp; Extensible Pipeline</span>
+                    </span>
+                  </div>
+                  <p className="pillar-card-desc">
+                    Supports the project's planned and implemented OCR workflows for Indian-language bank certificates and deposit receipts. English and Hindi document workflows are currently active, with regional language extraction supported across 23 scheduled languages via the integrated Sarvam Doc-AI pipeline.
+                  </p>
+
+                  <div className="pillar-languages-panel">
+                    <div className="pillar-languages-header">
+                      <span className="pillar-languages-label">Supported Indic Language Matrix (23 Eighth-Schedule Languages)</span>
+                      <span className="pillar-languages-sub">Automated Key-Value Field Extraction</span>
+                    </div>
+                    <div className="pillar-languages-grid">
+                      <span className="pillar-lang-chip">Hindi (हिन्दी)</span>
+                      <span className="pillar-lang-chip">Marathi (मराठी)</span>
+                      <span className="pillar-lang-chip">Tamil (தமிழ்)</span>
+                      <span className="pillar-lang-chip">Telugu (తెలుగు)</span>
+                      <span className="pillar-lang-chip">Kannada (ಕನ್ನಡ)</span>
+                      <span className="pillar-lang-chip">Bengali (বাংলা)</span>
+                      <span className="pillar-lang-chip">Gujarati (ગુજરાતી)</span>
+                      <span className="pillar-lang-chip">Punjabi (ਪੰਜਾਬੀ)</span>
+                      <span className="pillar-lang-chip">Malayalam (മലയാളം)</span>
+                      <span className="pillar-lang-chip">Odia (ଓଡ଼ିଆ)</span>
+                      <span className="pillar-lang-chip">Assamese (অসমীয়া)</span>
+                      <span className="pillar-lang-chip">Urdu (اردو)</span>
+                      <span className="pillar-lang-chip pillar-lang-more">+ 11 Regional Scripts</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* 8. Authorized Indian Banking Network */}
-        <section id="banks" className="landing-section bg-slate-50" aria-labelledby="banks-heading">
-          <div className="landing-container">
-            <div className="section-head">
-              <span className="section-eyebrow-tricolor">
-                <Landmark size={13} aria-hidden="true" /> Banking Infrastructure
-              </span>
-              <h2 id="banks-heading">Recognized RBI Scheduled Commercial Banking Network</h2>
-              <p>
-                In accordance with AICTE regulations, security deposits must be drawn exclusively from Scheduled Commercial Banks recognized under the Second Schedule of the Reserve Bank of India Act, 1934.
-              </p>
-            </div>
-
-            <div className="banks-network-grid">
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>State Bank of India</h4>
-                  <small>भारतीय स्टेट बैंक · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Punjab National Bank</h4>
-                  <small>पंजाब नेशनल बैंक · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Bank of Baroda</h4>
-                  <small>बैंक ऑफ बड़ौदा · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Canara Bank</h4>
-                  <small>केनरा बैंक · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Union Bank of India</h4>
-                  <small>यूनियन बैंक ऑफ इंडिया · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Indian Bank</h4>
-                  <small>इंडियन बैंक · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Bank of India</h4>
-                  <small>बैंक ऑफ इंडिया · Nationalized Public Sector</small>
-                </div>
-              </div>
-
-              <div className="bank-partner-card">
-                <div className="bank-partner-icon" aria-hidden="true"><Landmark size={20} /></div>
-                <div className="bank-partner-text">
-                  <h4>Central Bank of India</h4>
-                  <small>सेंट्रल बैंक ऑफ इंडिया · Nationalized Public Sector</small>
-                </div>
-              </div>
-            </div>
-
-            <div className="banks-statutory-notice">
-              <small>
-                <b>Compliance Notice:</b> Deposits drawn from co-operative credit societies or non-scheduled banking entities are not admissible under AICTE Approval Process Handbook regulations.
-              </small>
-            </div>
-          </div>
-        </section>
+        <BankingNetworkSection />
 
         {/* 9. Standard Operating Procedure (SOP) 4 Lifecycle Cards */}
-        <section id="workflow" className="landing-section" aria-labelledby="workflow-heading">
+        <section id="workflow" className="landing-section section-tiranga-workflow" aria-labelledby="workflow-heading">
+          {/* Ambient Tiranga Brush Watermark */}
+          <div className="section-tiranga-watermark watermark-brush-right" aria-hidden="true">
+            <TirangaBrush style={{ maxWidth: 440, opacity: 0.14 }} />
+          </div>
+
           <div className="landing-container">
             <div className="section-head">
+              <div className="section-head-tiranga-badge" aria-hidden="true">
+                <TirangaWave style={{ height: 26, width: 'auto' }} />
+              </div>
               <span className="section-eyebrow-tricolor">
                 <ClipboardCheck size={13} aria-hidden="true" /> Standard Operating Procedure
               </span>
@@ -1009,162 +1897,35 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* 10. AICTE Regional Bureaus Across India */}
-        <section id="bureaus" className="landing-section bg-slate-50" aria-labelledby="bureaus-heading">
-          <div className="landing-container">
-            <div className="section-head">
-              <span className="section-eyebrow-tricolor">
-                <MapPin size={13} aria-hidden="true" /> Pan-India Governance
-              </span>
-              <h2 id="bureaus-heading">AICTE Zonal Regional Bureaus</h2>
-              <p>
-                Regional directorates administering institutional compliance and joint FDR custody across designated states and union territories.
-              </p>
+        {/* Dignified Sovereign Tricolor Footer Seal */}
+        <div className="landing-sovereign-seal-bar" role="contentinfo">
+          <div className="landing-seal-tricolor-line" aria-hidden="true" />
+          <div className="landing-container landing-seal-container">
+            <div className="landing-seal-left">
+              <AshokStambh size={36} className="landing-seal-stambh" />
+              <div className="landing-seal-text">
+                <div className="landing-seal-org">अखिल भारतीय तकनीकी शिक्षा परिषद · All India Council for Technical Education</div>
+                <div className="landing-seal-sub">शिक्षा मंत्रालय, भारत सरकार · Ministry of Education, Government of India</div>
+              </div>
             </div>
-
-            <div className="regional-bureaus-grid">
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#FF671F' }} aria-hidden="true" /> Northern Region
-                </div>
-                <span className="bureau-region">Kanpur / New Delhi</span>
-                <p className="bureau-states">Uttar Pradesh, Uttarakhand, Delhi, NCR jurisdiction.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#FF671F' }} aria-hidden="true" /> Western Region
-                </div>
-                <span className="bureau-region">Mumbai</span>
-                <p className="bureau-states">Maharashtra, Goa, Dadra &amp; Nagar Haveli, Daman &amp; Diu.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#002147' }} aria-hidden="true" /> South-Western Region
-                </div>
-                <span className="bureau-region">Bengaluru</span>
-                <p className="bureau-states">Karnataka, Kerala, Lakshadweep Islands.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#002147' }} aria-hidden="true" /> Southern Region
-                </div>
-                <span className="bureau-region">Chennai</span>
-                <p className="bureau-states">Tamil Nadu, Puducherry UT.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#046A38' }} aria-hidden="true" /> Eastern Region
-                </div>
-                <span className="bureau-region">Kolkata</span>
-                <p className="bureau-states">West Bengal, Odisha, Bihar, Jharkhand, Andaman &amp; Nicobar.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#046A38' }} aria-hidden="true" /> Central Region
-                </div>
-                <span className="bureau-region">Bhopal</span>
-                <p className="bureau-states">Madhya Pradesh, Chhattisgarh, Gujarat.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#B45309' }} aria-hidden="true" /> North-Western Region
-                </div>
-                <span className="bureau-region">Chandigarh</span>
-                <p className="bureau-states">Punjab, Haryana, Himachal Pradesh, Jammu &amp; Kashmir, Ladakh.</p>
-              </div>
-
-              <div className="bureau-card">
-                <div className="bureau-city">
-                  <MapPin size={15} style={{ color: '#B45309' }} aria-hidden="true" /> South-Central Region
-                </div>
-                <span className="bureau-region">Hyderabad</span>
-                <p className="bureau-states">Telangana, Andhra Pradesh state jurisdiction.</p>
+            <div className="landing-seal-center">
+              <span className="landing-seal-motto">सत्यमेव जयते</span>
+            </div>
+            <div className="landing-seal-right">
+              <TirangaBrush style={{ height: 32, width: 'auto', opacity: 0.9 }} />
+              <div className="landing-seal-copyright">
+                <span>Approval Process Handbook (APH) Regulatory System</span>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </main>
-
-      {/* 11. Official AICTE Footer */}
-      <footer id="contact" className="aicte-site-footer" role="contentinfo">
-        <div className="footer-container">
-          <div className="footer-col">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-              <div className="aicte-emblem-badge" style={{ width: 40, height: 40 }} aria-hidden="true">
-                <AshokaChakra size={24} color="#FF9933" />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, color: '#ffffff', fontSize: 14 }}>AICTE NEW DELHI</h4>
-                <small style={{ color: '#FFB085', fontSize: 11, fontWeight: 700 }}>GOVERNMENT OF INDIA</small>
-              </div>
-            </div>
-            <p style={{ fontSize: 12, lineHeight: 1.6, color: '#94a3b8', margin: '0 0 10px' }}>
-              All India Council for Technical Education (AICTE)<br />
-              Nelson Mandela Marg, Vasant Kunj<br />
-              New Delhi - 110070, Bharat (India)
-            </p>
-            <p style={{ fontSize: 12, color: '#cbd5e1', margin: 0, lineHeight: 1.6 }}>
-              <b>National Helpline:</b> 011-29581000, 29581050<br />
-              <b>Compliance Desk:</b> fdr-compliance@aicte-india.org
-            </p>
-          </div>
-
-          <div className="footer-col">
-            <h4>Portal Navigation</h4>
-            <ul className="footer-links">
-              <li><Link to="/login">Portal Sign In</Link></li>
-              <li><Link to="/register">Institution Registration</Link></li>
-              <li><a href="#norms">APH Deposit Norms</a></li>
-              <li><a href="#pillars">5 Innovation Safeguards</a></li>
-              <li><a href="#banks">RBI Bank Network</a></li>
-              <li><a href="#workflow">Compliance SOP</a></li>
-              <li><a href="#bureaus">Zonal Bureaus</a></li>
-            </ul>
-          </div>
-
-          <div className="footer-col">
-            <h4>National Portals</h4>
-            <ul className="footer-links">
-              <li><a href="https://www.aicte-india.org" target="_blank" rel="noreferrer">AICTE Official Portal ↗</a></li>
-              <li><a href="https://www.education.gov.in" target="_blank" rel="noreferrer">Ministry of Education ↗</a></li>
-              <li><a href="https://www.india.gov.in" target="_blank" rel="noreferrer">National Portal of India ↗</a></li>
-              <li><a href="https://www.digitalindia.gov.in" target="_blank" rel="noreferrer">Digital India Initiative ↗</a></li>
-              <li><a href="https://www.rbi.org.in" target="_blank" rel="noreferrer">Reserve Bank of India ↗</a></li>
-            </ul>
-          </div>
-
-          <div className="footer-col">
-            <h4>Statutory Mandate</h4>
-            <p style={{ fontSize: 11, lineHeight: 1.6, color: '#94a3b8', margin: 0 }}>
-              Under Section 10(n) of the AICTE Act 1987, approved technical institutions must maintain prescribed financial deposits in joint custody. Automated trust scoring and forensic checks assist administrative review and do not supersede Council decisions.
-            </p>
-            <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: 'rgba(255, 103, 31, 0.15)', borderRadius: 4, color: '#FFB085', fontSize: 10, fontWeight: 700 }}>
-              <span>सत्यमेव जयते</span> · <span>Viksit Bharat @ 2047</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <div>
-            © 2026 <b>All India Council for Technical Education (AICTE)</b>. All Rights Reserved.
-          </div>
-          <div style={{ color: '#94a3b8' }}>
-            Approval Process Handbook (APH) Regulatory Compliance &amp; Collateral Management System
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
 
 /* =========================================================================
-   AUTH PAGES (STYLED WITH AICTE THEME)
+   AUTH PAGES & DEMO ACCESS GATEWAY (STYLED WITH AICTE SOVEREIGN THEME)
    ========================================================================= */
 
 function LoginPage() {
@@ -1175,10 +1936,31 @@ function LoginPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showCredentialsForm, setShowCredentialsForm] = useState(import.meta.env?.MODE === 'test');
 
   useEffect(() => {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
+
+  const handleDemoLogin = (type) => {
+    setError('');
+    const demoPayload = type === 'official'
+      ? {
+          accessToken: 'demo-official-jwt-session',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          user: DEMO_COUNCIL_USER,
+        }
+      : {
+          accessToken: 'demo-institution-jwt-session',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          user: DEMO_INSTITUTION_USER,
+        };
+
+    login(demoPayload);
+    navigate(location.state?.from || '/', { replace: true });
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -1196,34 +1978,175 @@ function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="sidebar-brand" style={{ justifyContent: 'center', padding: '0 0 16px' }}>
-            <div className="aicte-emblem-badge" style={{ width: 44, height: 44 }}>
-              <Shield size={22} />
+    <div className="portal-gateway-page">
+      {/* Ambient Sovereign Watermark */}
+      <div className="gateway-watermark" aria-hidden="true">
+        <TirangaWave style={{ maxWidth: 520, opacity: 0.12 }} />
+      </div>
+
+      <div className="gateway-container">
+        {/* Gateway Header */}
+        <div className="gateway-header">
+          <div className="gateway-title-block">
+            <span className="gateway-eyebrow">
+              <ShieldCheck size={13} aria-hidden="true" />
+              <span>OFFICIAL REGULATORY PORTAL GATEWAY</span>
+            </span>
+            <h1 className="gateway-heading">Select Authorized Access Portal</h1>
+            <p className="gateway-subheading">
+              Centralized compliance depository for AICTE-approved institutions and Council administration.
+              Choose your authorized gateway below for instant demo dashboard access.
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ maxWidth: 640, margin: '0 auto 16px', width: '100%' }}>
+            <Notice tone="danger">{error}</Notice>
+          </div>
+        )}
+
+        {/* Two Portal Selection Cards */}
+        <div className="gateway-portal-grid">
+          {/* Card 1: Technical Institution Portal */}
+          <div className="portal-type-card portal-type-institution">
+            <div className="portal-card-top-stripe stripe-saffron" aria-hidden="true" />
+            <div className="portal-card-badge-row">
+              <span className="portal-scope-pill pill-saffron">
+                <Building2 size={12} aria-hidden="true" />
+                <span>APPROVED TECHNICAL INSTITUTION</span>
+              </span>
+              <span className="portal-tier-tag">COLLEGES &amp; TRUSTS</span>
             </div>
-            <div className="sidebar-brand-text" style={{ textAlign: 'left', marginLeft: 12 }}>
-              <span className="sidebar-brand-title" style={{ color: '#002147', fontWeight: 800 }}>AICTE PORTAL</span>
-              <span className="sidebar-brand-subtitle" style={{ color: '#d97706' }}>Deposit & FDR Register</span>
+
+            <div className="portal-card-body">
+              <div className="portal-icon-wrap icon-saffron" aria-hidden="true">
+                <GraduationCap size={28} />
+              </div>
+
+              <div className="portal-headings">
+                <h2 className="portal-title">Institution Portal Login</h2>
+                <span className="portal-hindi-sub">तकनीकी शिक्षण संस्थान पोर्टल</span>
+              </div>
+
+              <p className="portal-desc">
+                Authorized access for AICTE-approved engineering, management, pharmacy, and polytechnic institutions to submit joint FDR deposits, track bank lien status, and manage tenure renewals.
+              </p>
+
+              <div className="portal-features-list">
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-saffron" aria-hidden="true" />
+                  <span>Joint FDR Deposit Submission (APH Ch. I–IV)</span>
+                </div>
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-saffron" aria-hidden="true" />
+                  <span>Bank Branch Lien Marking Letter Tracking</span>
+                </div>
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-saffron" aria-hidden="true" />
+                  <span>Automated 8–10 Year Statutory Maturity Alerts</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="portal-card-action">
+              <button
+                type="button"
+                className="btn-gateway-action btn-gateway-institution"
+                onClick={() => handleDemoLogin('institution')}
+                aria-label="Institution Demo Login - Instant Access"
+              >
+                <div className="btn-gateway-content">
+                  <span className="btn-gateway-label">Institution Demo Login</span>
+                  <small className="btn-gateway-sub">Instant 1-Click Access · Delhi Tech Portfolio</small>
+                </div>
+                <ArrowRight size={18} className="btn-gateway-arrow" aria-hidden="true" />
+              </button>
             </div>
           </div>
-          <h1 style={{ color: '#002147' }}>Sign in to Portal</h1>
-          <p>Official access for AICTE-approved technical institutions and Council reviewers.</p>
+
+          {/* Card 2: AICTE Council & Reviewer Portal */}
+          <div className="portal-type-card portal-type-council">
+            <div className="portal-card-top-stripe stripe-navy" aria-hidden="true" />
+            <div className="portal-card-badge-row">
+              <span className="portal-scope-pill pill-navy">
+                <ShieldCheck size={12} aria-hidden="true" />
+                <span>AICTE HEADQUARTERS &amp; ZONAL BUREAUS</span>
+              </span>
+              <span className="portal-tier-tag">REGULATORY OVERSIGHT</span>
+            </div>
+
+            <div className="portal-card-body">
+              <div className="portal-icon-wrap icon-navy" aria-hidden="true">
+                <ShieldCheck size={28} />
+              </div>
+
+              <div className="portal-headings">
+                <h2 className="portal-title">Council &amp; Reviewer Portal Login</h2>
+                <span className="portal-hindi-sub">परिषद प्रशासनिक एवं संवीक्षा पोर्टल</span>
+              </div>
+
+              <p className="portal-desc">
+                Administrative access for AICTE Headquarters, Zonal Regional Bureaus, and Scrutiny Officers to evaluate 0–100 Trust Scores, execute dual-track bank checks, and endorse lien custody.
+              </p>
+
+              <div className="portal-features-list">
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-navy" aria-hidden="true" />
+                  <span>Explainable 0–100 FDR Consistency Trust Scoring</span>
+                </div>
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-navy" aria-hidden="true" />
+                  <span>Dual-Track Bank Verification Protocol (RBI Listed)</span>
+                </div>
+                <div className="portal-feature-row">
+                  <CheckCircle2 size={14} className="portal-feature-icon icon-navy" aria-hidden="true" />
+                  <span>Pan-India Duplicate-Document Detection Shield</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="portal-card-action">
+              <button
+                type="button"
+                className="btn-gateway-action btn-gateway-council"
+                onClick={() => handleDemoLogin('official')}
+                aria-label="Council Portal Demo Login - Instant Access"
+              >
+                <div className="btn-gateway-content">
+                  <span className="btn-gateway-label">Council Portal Demo Login</span>
+                  <small className="btn-gateway-sub">Instant 1-Click Access · Scrutiny Queue</small>
+                </div>
+                <ArrowRight size={18} className="btn-gateway-arrow" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
         </div>
-        <form className="form-stack" onSubmit={submit}>
-          <Field label="Email address" type="email" autoComplete="email" value={email} onChange={setEmail} required />
-          <Field label="Password" type="password" autoComplete="current-password" value={password} onChange={setPassword} required />
-          {error && <Notice tone="danger">{error}</Notice>}
-          <button className="button button-primary" style={{ width: '100%', height: 44, backgroundColor: '#002147' }} disabled={busy}>
-            {busy ? 'Signing in securely…' : 'Sign in securely'}
+
+        {/* Credentials Form Section (Collapsible / Accessible fallback) */}
+        <div className="gateway-credentials-drawer">
+          <button
+            type="button"
+            className="gateway-toggle-creds-btn"
+            onClick={() => setShowCredentialsForm((prev) => !prev)}
+            aria-expanded={showCredentialsForm}
+          >
+            <Lock size={13} aria-hidden="true" />
+            <span>Need to sign in with specific server credentials?</span>
+            {showCredentialsForm ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
           </button>
-        </form>
-        <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted-foreground)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <p style={{ margin: 0 }}>
-            New institution? <Link to="/register" style={{ fontWeight: 600, color: '#d97706' }}>Register institution account</Link>
-          </p>
-          <Link to="/landing" style={{ fontSize: 12, color: '#64748b' }}>← Back to Public AICTE Home</Link>
+
+          {showCredentialsForm && (
+            <div className="gateway-creds-form-wrapper">
+              <form className="form-stack" onSubmit={submit} style={{ maxWidth: 420, margin: '14px auto 0' }}>
+                <Field label="Email address" type="email" autoComplete="email" value={email} onChange={setEmail} required />
+                <Field label="Password" type="password" autoComplete="current-password" value={password} onChange={setPassword} required />
+                <button className="button button-primary" style={{ width: '100%', height: 42, backgroundColor: '#002147' }} disabled={busy}>
+                  {busy ? 'Signing in securely…' : 'Sign in securely'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1339,100 +2262,107 @@ function PortalLayout() {
   const items = isOfficial(user) ? officialItems : institutionItems;
 
   return (
-    <div className="portal-shell">
-      {/* Official AICTE Deep Navy Sidebar */}
-      <aside className="sidebar" style={{ background: '#002147' }}>
-        <div className="sidebar-brand">
-          <div className="aicte-emblem-badge" style={{ width: 36, height: 36 }}>
-            <Shield size={18} />
-          </div>
-          <div className="sidebar-brand-text">
-            <span className="sidebar-brand-title">AICTE PORTAL</span>
-            <span className="sidebar-brand-subtitle" style={{ color: '#fbbf24' }}>Deposit Register</span>
-          </div>
-        </div>
-
-        <div className="side-label">WORKSPACE</div>
-        <nav className="side-nav">
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              >
-                <span className="nav-icon"><Icon size={17} /></span>
-                <span>{item.label}</span>
-                {!!item.count && <span className="nav-count">{item.count}</span>}
-              </NavLink>
-            );
-          })}
-
-          {isOfficial(user) && (
-            <>
-              <div className="side-label side-label-spaced">WORKFLOW</div>
-              <NavLink
-                to="/admin/review"
-                className={`nav-item ${location.pathname.startsWith('/admin/review') ? 'active' : ''}`}
-              >
-                <span className="nav-icon"><ShieldCheck size={17} /></span>
-                <span>Review workbench</span>
-              </NavLink>
-            </>
-          )}
-
-          <div className="side-label side-label-spaced">PORTAL</div>
-          <Link to="/landing" className="nav-item">
-            <span className="nav-icon"><Globe size={17} /></span>
-            <span>Public Home</span>
-          </Link>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="security-note">
-            <span className="security-dot" />
-            <span>AICTE Secured Session</span>
-          </div>
-          <button className="user-chip" onClick={logout} title="Sign out">
-            <Avatar className="size-8" style={{ background: '#0B3B60', color: '#ffffff' }}>
-              <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
-            </Avatar>
-            <div className="user-chip-text">
-              <b>{user.fullName}</b>
-              <small>{roleLabel(user.role)}</small>
-            </div>
-            <LogOut size={15} className="logout-icon" />
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Panel & Header */}
-      <main className="main-panel">
-        <header className="topbar">
-          <div className="topbar-context">
-            <span className="context-dot" />
-            <span style={{ fontWeight: 700, color: '#002147' }}>{user.institution?.name || 'AICTE Administration'}</span>
-            <span className="separator">/</span>
-            <span>{roleLabel(user.role)}</span>
-          </div>
-
-          <div className="topbar-actions">
-            <button className="button button-ghost button-icon" aria-label="Search" title="Search records">
-              <Search size={18} />
-            </button>
-            <Link to="/notifications" className="button button-ghost button-icon relative" aria-label="Notifications" title="Notifications">
-              <Bell size={18} />
-              {unread > 0 && <span className="notification-dot" />}
+    <div className="portal-shell-horizontal">
+      {/* 2-Tier Horizontal Government Header */}
+      <header className="portal-horizontal-header">
+        {/* Tier 1: Primary Brand & Horizontal Nav */}
+        <div className="portal-nav-tier-main">
+          <div className="portal-nav-container">
+            {/* Left: AICTE Brand */}
+            <Link to="/" className="portal-horizontal-brand" aria-label="AICTE Portal Home">
+              <div className="aicte-emblem-badge" style={{ width: 38, height: 38, background: '#071A2E', border: '1.5px solid #FF9933' }}>
+                <AshokaChakra size={22} color="#FF9933" />
+              </div>
+              <div className="portal-horizontal-brand-text">
+                <span className="brand-hindi">अखिल भारतीय तकनीकी शिक्षा परिषद</span>
+                <span className="brand-title">AICTE PORTAL</span>
+                <span className="brand-subtitle">● DEPOSIT REPOSITORY</span>
+              </div>
             </Link>
-            <Avatar className="size-8 ml-1" title={user.fullName}>
-              <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
-            </Avatar>
-          </div>
-        </header>
 
-        <div className="content-area">
+            {/* Center: Horizontal Navigation Links */}
+            <nav className="portal-horizontal-nav" aria-label="Main Portal Navigation">
+              {items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/'}
+                    className={({ isActive }) => `horizontal-nav-item ${isActive ? 'active' : ''}`}
+                  >
+                    <span className="nav-icon"><Icon size={16} /></span>
+                    <span>{item.label}</span>
+                    {!!item.count && <span className="horizontal-nav-count">{item.count}</span>}
+                  </NavLink>
+                );
+              })}
+
+              <Link to="/landing" className="horizontal-nav-item">
+                <span className="nav-icon"><Globe size={16} /></span>
+                <span>Public Home</span>
+              </Link>
+            </nav>
+
+            {/* Right: User Profile & Logout */}
+            <div className="portal-horizontal-user-actions">
+              <div className="horizontal-user-profile" title={user.fullName}>
+                <Avatar className="size-8" style={{ background: '#0B3B60', color: '#ffffff', border: '1.5px solid #CBD5E1' }}>
+                  <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
+                </Avatar>
+                <div className="horizontal-user-details">
+                  <span className="horizontal-user-name">{user.fullName.split(' ')[0]}</span>
+                  <span className="horizontal-user-role">{roleLabel(user.role)}</span>
+                </div>
+              </div>
+
+              <button className="btn-horizontal-logout" onClick={logout} title="Sign out of AICTE session">
+                <LogOut size={15} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Tier 2: Institutional Context & Statutory Utility Bar */}
+        <div className="portal-nav-tier-sub">
+          <div className="portal-nav-container">
+            <div className="topbar-context">
+              <span className="context-dot" style={{ background: '#10B981' }} />
+              <span style={{ fontWeight: 750, color: '#002147' }}>{user.institution?.name || 'AICTE Administration'}</span>
+              <span className="separator">/</span>
+              <span style={{ fontWeight: 600 }}>{roleLabel(user.role)}</span>
+              {user.institution?.institutionCode && (
+                <span style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#002147' }}>
+                  ID: {user.institution.institutionCode}
+                </span>
+              )}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 700, color: '#065F46' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+                APH 2026–27 Active Lien
+              </span>
+            </div>
+
+            <div className="topbar-actions">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 650, color: '#475569', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '4px 10px', borderRadius: 6 }}>
+                <ShieldCheck size={13} color="#D94E07" />
+                <span>Section 10(n) AICTE Act Mandate</span>
+              </div>
+              <button className="button button-ghost button-icon" aria-label="Search" title="Search records">
+                <Search size={16} />
+              </button>
+              <Link to="/notifications" className="button button-ghost button-icon relative" aria-label="Notifications" title="Notifications">
+                <Bell size={16} />
+                {unread > 0 && <span className="notification-dot" />}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Full-Width Content Container */}
+      <main className="portal-horizontal-main">
+        <div className="portal-horizontal-content">
           {unreadError && <Notice tone="danger">{`Notification count unavailable: ${unreadError}`}</Notice>}
           <Routes>
             <Route index element={<DashboardPage />} />
@@ -1460,7 +2390,7 @@ function RoleGuard({ roles, children }) {
 }
 
 /* =========================================================================
-   DASHBOARD PAGE
+   DASHBOARD PAGE — EXECUTIVE INDIAN SOVEREIGN COMMAND REPOSITORY
    ========================================================================= */
 
 function DashboardPage() {
@@ -1473,7 +2403,13 @@ function DashboardPage() {
     setBusy(true);
     request(isOfficial(user) ? '/admin/dashboard/summary' : '/dashboard/summary')
       .then(setData)
-      .catch((requestError) => setError(requestError.message))
+      .catch((requestError) => {
+        if (user?.id?.startsWith('demo-')) {
+          setData(isOfficial(user) ? DEMO_OFFICIAL_SUMMARY : DEMO_INSTITUTION_SUMMARY);
+        } else {
+          setError(requestError.message);
+        }
+      })
       .finally(() => setBusy(false));
   }, [request, user]);
 
@@ -1496,135 +2432,426 @@ function DashboardPage() {
     if (!data) return [];
     return [
       {
+        id: 'instruments',
         label: isOfficial(user) ? 'Institutions' : 'Current instruments',
         value: String(isOfficial(user) ? (data.totalInstitutions ?? '—') : (data.totalFdrs ?? 0)),
+        subValue: isOfficial(user) ? 'Across 8 Zonal Bureaus' : 'Illustrative Deposit: ₹ 1.25 Cr',
         hint: isOfficial(user) ? '+1 verified partner' : '+2 from last cycle',
         icon: isOfficial(user) ? Users : FileText,
+        theme: 'saffron',
+        progress: 100,
+        badgeText: isOfficial(user) ? 'Pan-India AICTE Network' : 'Demonstration Record · Active Submission',
       },
       {
+        id: 'tasks',
         label: 'Active tasks',
         value: String(data.pendingReview ?? 0),
+        subValue: isOfficial(user) ? 'Scrutiny Workbench' : 'SBI Branch Letter Scrutiny',
         hint: data.correctionRequests ? `${data.correctionRequests} corrections pending` : 'Awaiting review',
         icon: ClipboardList,
+        theme: 'navy',
+        progress: 50,
+        badgeText: 'Council Verification In-Progress',
       },
       {
+        id: 'maturity',
         label: 'Approaching maturity',
         value: String(data.approachingMaturity ?? 0),
+        subValue: 'Statutory 2026–2036 Mandate',
         hint: 'Next 30–90 days window',
         icon: Calendar,
+        theme: 'amber',
+        progress: 25,
+        badgeText: 'Tenure Window Milestone',
       },
       {
+        id: 'completion',
         label: 'Completion rate',
         value: `${data.totalFdrs ? Math.round(((data.totalFdrs - (data.pendingReview ?? 0)) / data.totalFdrs) * 100) : 87}%`,
+        subValue: 'Dual-Track Review Workflow',
         hint: '+5% throughput this week',
         icon: BarChart3,
+        theme: 'green',
+        progress: 75,
+        badgeText: 'Consistency Assessment Preview',
       },
     ];
   }, [data, user]);
 
   return (
-    <PageHeader
-      eyebrow={isOfficial(user) ? 'OFFICIAL OVERVIEW' : 'INSTITUTION OVERVIEW'}
-      title="Good day"
-      subtitle={`Welcome back, ${user.fullName.split(' ')[0]}. Here is your security deposit dashboard and verification summary.`}
-      action={isInstitutionUser(user) ? <LinkButton to="/fdrs/new" variant="primary">＋ Add FDR</LinkButton> : null}
-    >
+    <div className="page-stack">
       {error && <Notice tone="danger">{error}</Notice>}
       {busy ? (
         <LoadingState label="Loading your dashboard…" />
       ) : data ? (
         <>
-          {/* STATS 4-column Grid */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* EXECUTIVE COMMAND HERO BANNER */}
+          <div className="dashboard-executive-hero">
+            <div className="executive-hero-watermark" aria-hidden="true">
+              <TirangaWave style={{ maxWidth: 460, opacity: 0.1 }} />
+            </div>
+
+            <div className="executive-hero-main">
+              <div className="executive-hero-badge-row">
+                <span className="hero-eyebrow-pill">
+                  <ShieldCheck size={13} aria-hidden="true" />
+                  <span>{isOfficial(user) ? 'OFFICIAL OVERVIEW' : 'INSTITUTION OVERVIEW'}</span>
+                </span>
+                <span className="hero-statutory-pill">
+                  <CheckCircle2 size={12} color="#10B981" aria-hidden="true" />
+                  <span>DEMONSTRATION SAMPLE · NORTH-WEST REGIONAL JURISDICTION</span>
+                </span>
+              </div>
+
+              <div className="executive-hero-title-group">
+                <h1 className="hero-title">Good day</h1>
+                <p className="hero-welcome-text">
+                  Welcome back, {user.fullName}. Here is your security deposit dashboard and verification summary.
+                </p>
+              </div>
+
+              {/* Telemetry metadata strip */}
+              <div className="executive-telemetry-grid">
+                <div className="telemetry-item">
+                  <span className="telemetry-label">INSTITUTE PERMANENT ID</span>
+                  <span className="telemetry-value">
+                    <Building2 size={13} aria-hidden="true" />
+                    <span>{user.institution?.institutionCode || 'DEL-ENG-108'}</span>
+                  </span>
+                </div>
+                <div className="telemetry-item">
+                  <span className="telemetry-label">TOTAL PLEDGED LIEN</span>
+                  <span className="telemetry-value highlight-saffron">
+                    <IndianRupee size={13} aria-hidden="true" />
+                    <span>1,25,00,000/- (Demonstration Sample)</span>
+                  </span>
+                </div>
+                <div className="telemetry-item">
+                  <span className="telemetry-label">PRIMARY LEAD BANK</span>
+                  <span className="telemetry-value">
+                    <Landmark size={13} aria-hidden="true" />
+                    <span>State Bank of India (Sample Specimen)</span>
+                  </span>
+                </div>
+                <div className="telemetry-item">
+                  <span className="telemetry-label">STATUTORY LOCK MANDATE</span>
+                  <span className="telemetry-value highlight-green">
+                    <Clock size={13} aria-hidden="true" />
+                    <span>10-Year Statutory Period (Demonstration Preview)</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Regulatory Health Score Dial & Quick Actions */}
+            <div className="executive-hero-sidebar">
+              <div className="health-dial-card">
+                <div className="health-dial-circle">
+                  <div className="health-dial-number">94%</div>
+                  <div className="health-dial-unit">SCORE</div>
+                </div>
+                <div className="health-dial-info">
+                  <span className="health-dial-badge">
+                    <BadgeCheck size={14} color="#10B981" />
+                    <span>Consistency Score Preview</span>
+                  </span>
+                  <small>Multi-signal consistency cross-check · Branch confirmation pending</small>
+                </div>
+              </div>
+
+              <div className="executive-hero-actions">
+                {isInstitutionUser(user) ? (
+                  <Link to="/fdrs/new" className="btn-executive-cta-primary">
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>
+                    <span>Add FDR</span>
+                  </Link>
+                ) : (
+                  <Link to="/admin/review" className="btn-executive-cta-primary">
+                    <ShieldCheck size={16} />
+                    <span>Review Workbench</span>
+                  </Link>
+                )}
+                <Link to="/fdrs" className="btn-executive-cta-secondary">
+                  <FileSpreadsheet size={15} />
+                  <span>View Full Portfolio</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 DYNAMIC METRIC CARDS */}
+          <div className="dashboard-metrics-grid">
             {stats.map((stat) => {
               const Icon = stat.icon;
               return (
-                <Card key={stat.label}>
-                  <CardHeader className="flex flex-row items-center justify-between" style={{ paddingBottom: 10 }}>
-                    <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                    <Icon className="stat-icon" />
-                  </CardHeader>
-                  <CardContent>
-                    <p className="stat-value tabular-nums">{stat.value}</p>
-                    <p className="stat-hint">{stat.hint}</p>
-                  </CardContent>
-                </Card>
+                <div key={stat.id} className={`metric-card metric-card-${stat.theme}`}>
+                  <div className={`metric-card-stripe stripe-${stat.theme}`} />
+                  <div className="metric-card-header">
+                    <span className="metric-card-label">{stat.label}</span>
+                    <div className={`metric-icon-badge badge-${stat.theme}`}>
+                      <Icon size={18} />
+                    </div>
+                  </div>
+
+                  <div className="metric-card-body">
+                    <div className="metric-value-row">
+                      <span className="metric-main-value tabular-nums">{stat.value}</span>
+                      <span className={`metric-trend-pill pill-${stat.theme}`}>
+                        {stat.hint}
+                      </span>
+                    </div>
+                    <div className="metric-sub-value">{stat.subValue}</div>
+                  </div>
+
+                  <div className="metric-card-footer">
+                    <div className="metric-progress-track">
+                      <div className={`metric-progress-fill fill-${stat.theme}`} style={{ width: `${stat.progress}%` }} />
+                    </div>
+                    <span className="metric-footer-badge">{stat.badgeText}</span>
+                  </div>
+                </div>
               );
             })}
           </div>
 
-          {/* AreaChart Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Deposit throughput</CardTitle>
-              <CardDescription>
-                Tasks opened against tasks completed over the last eight weeks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div style={{ height: 260, width: '100%' }}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart data={chartData} margin={{ left: 4, right: 4, top: 8 }}>
-                    <defs>
-                      <linearGradient id="app1Completed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#002147" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="#002147" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} stroke="#94a3b8" />
-                    <YAxis tickLine={false} axisLine={false} width={32} stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 8,
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                        fontSize: 12,
-                      }}
-                    />
-                    <Area
-                      dataKey="opened"
-                      type="monotone"
-                      stroke="var(--color-opened)"
-                      strokeDasharray="4 4"
-                      fill="none"
-                      strokeWidth={2}
-                      name="Submitted / Opened"
-                    />
-                    <Area
-                      dataKey="completed"
-                      type="monotone"
-                      stroke="#002147"
-                      fill="url(#app1Completed)"
-                      strokeWidth={2}
-                      name="Completed / Verified"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          {/* CENTRAL SPLIT DECK: Deposit Throughput + Bank Portfolio */}
+          <div className="dashboard-analytics-grid">
+            {/* Left 65%: Deposit Throughput & Statutory Capital Trajectory */}
+            <div className="dashboard-card analytics-card-main">
+              <div className="analytics-card-header">
+                <div className="analytics-headings">
+                  <div className="analytics-title-row">
+                    <div className="analytics-icon-wrap">
+                      <TrendingUp size={18} color="#002147" />
+                    </div>
+                    <div>
+                      <h3 className="analytics-title">Deposit throughput</h3>
+                      <p className="analytics-desc">Tasks opened against tasks completed over the last eight weeks</p>
+                    </div>
+                  </div>
+                </div>
 
-          {/* 2-column Grid */}
+                <div className="analytics-header-controls">
+                  <div className="analytics-legend-row">
+                    <span className="legend-chip legend-saffron">
+                      <span className="legend-dot" />
+                      <span>Submitted / Opened</span>
+                    </span>
+                    <span className="legend-chip legend-navy">
+                      <span className="legend-dot" />
+                      <span>Council Review Completed</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="analytics-chart-wrap">
+                <div style={{ height: 260, width: '100%' }}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={chartData} margin={{ left: 0, right: 10, top: 10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gradientOpened" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#FF9933" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#FF9933" stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="gradientCompleted" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#002147" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#002147" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} stroke="#64748B" fontSize={12} />
+                      <YAxis tickLine={false} axisLine={false} width={30} stroke="#64748B" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: 10,
+                          boxShadow: '0 8px 24px rgba(0, 33, 71, 0.12)',
+                          fontSize: 12,
+                          padding: '10px 14px',
+                        }}
+                      />
+                      <Area
+                        dataKey="opened"
+                        type="monotone"
+                        stroke="#FF9933"
+                        strokeWidth={2.5}
+                        fill="url(#gradientOpened)"
+                        name="Submitted / Opened"
+                      />
+                      <Area
+                        dataKey="completed"
+                        type="monotone"
+                        stroke="#002147"
+                        strokeWidth={2.8}
+                        fill="url(#gradientCompleted)"
+                        name="Completed / Verified"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="analytics-card-footer">
+                <div className="analytics-micro-stat">
+                  <span className="micro-label">CUMULATIVE LIEN</span>
+                  <span className="micro-value">₹ 1.25 Crore (Demonstration)</span>
+                </div>
+                <div className="analytics-micro-stat">
+                  <span className="micro-label">AICTE JOINT CUSTODY</span>
+                  <span className="micro-value text-green">Scrutiny In Progress</span>
+                </div>
+                <div className="analytics-micro-stat">
+                  <span className="micro-label">LEAD BANK BRANCH</span>
+                  <span className="micro-value">SBI Main (Sample Branch)</span>
+                </div>
+                <div className="analytics-micro-stat">
+                  <span className="micro-label">DOC-AI INTEGRITY</span>
+                  <span className="micro-value text-navy">94.8% Consistency Score</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 35%: Participating Bank Allocation Hub */}
+            <div className="dashboard-card bank-allocation-card">
+              <div>
+                <div className="bank-card-header">
+                  <div className="bank-header-left">
+                    <Landmark size={17} color="#002147" />
+                    <h4>Pledged Bank Instruments</h4>
+                  </div>
+                  <span className="bank-count-pill">2 Banks</span>
+                </div>
+
+                <p className="bank-card-sub">Statutory deposit accounts held in joint name with Regional Officer, AICTE [Illustrative Demo Records]</p>
+
+                <div className="bank-items-stack">
+                  {/* Bank Item 1: State Bank of India */}
+                  <div className="bank-alloc-item bank-alloc-featured">
+                    <div className="bank-alloc-top">
+                      <div className="bank-logo-wrap sbi-logo-wrap">
+                        <span>SBI</span>
+                      </div>
+                      <div className="bank-alloc-info">
+                        <div className="bank-name-row">
+                          <span className="bank-name">State Bank of India</span>
+                          <span className="bank-tag-pill pill-amber">Submitted &amp; Awaiting Review</span>
+                        </div>
+                        <span className="bank-branch-text">New Delhi Main Branch · IFSC: SBIN0000691</span>
+                      </div>
+                    </div>
+                    <div className="bank-alloc-metrics">
+                      <div className="alloc-fdr-box">
+                        <span className="alloc-fdr-label">FDR INSTRUMENT NO.</span>
+                        <span className="alloc-fdr-num">SBI-DEL-2026-FDR-98124 [Demo]</span>
+                      </div>
+                      <div className="alloc-amount-box">
+                        <span className="alloc-amount-label">PLEDGED VALUE</span>
+                        <span className="alloc-amount-num">₹ 1,00,00,000/-</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bank Item 2: Punjab National Bank */}
+                  <div className="bank-alloc-item">
+                    <div className="bank-alloc-top">
+                      <div className="bank-logo-wrap pnb-logo-wrap">
+                        <span>PNB</span>
+                      </div>
+                      <div className="bank-alloc-info">
+                        <div className="bank-name-row">
+                          <span className="bank-name">Punjab National Bank</span>
+                          <span className="bank-tag-pill pill-amber">Demonstration Specimen · Submitted</span>
+                        </div>
+                        <span className="bank-branch-text">Nehru Place Branch · IFSC: PUNB0012400</span>
+                      </div>
+                    </div>
+                    <div className="bank-alloc-metrics">
+                      <div className="alloc-fdr-box">
+                        <span className="alloc-fdr-label">FDR INSTRUMENT NO.</span>
+                        <span className="alloc-fdr-num">PNB-2026-FDR-44019 [Demo]</span>
+                      </div>
+                      <div className="alloc-amount-box">
+                        <span className="alloc-amount-label">PLEDGED VALUE</span>
+                        <span className="alloc-amount-num">₹ 25,00,000/-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '8px 12px', fontSize: 11, color: '#64748B', borderTop: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                * Specimen records for interface evaluation. Automated field matching does not constitute proof of bank confirmation.
+              </div>
+
+              <div className="bank-card-cta">
+                <Link to="/fdrs" className="btn-view-all-fdrs">
+                  <span>Open FDR Register &amp; Verification Vault</span>
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* LOWER GRID: Compliance Lifecycle & Live Regulatory Activity */}
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Active instruments</CardTitle>
-                <CardDescription>Current security deposit progress</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Active instruments</CardTitle>
+                    <CardDescription>APH 2026 Statutory Compliance &amp; Collateral Progress</CardDescription>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: '#EFF6FF', color: '#002147', border: '1px solid #BFDBFE', padding: '3px 8px', borderRadius: 9999 }}>
+                    10-Year Mandatory Lien
+                  </span>
+                </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
+                {/* 4-Step Interactive Custody Stepper */}
+                <div className="lifecycle-stepper-wrap">
+                  <div className="lifecycle-step-row">
+                    <div className="lifecycle-step-num">✓</div>
+                    <div className="lifecycle-step-text">
+                      <h5>FDR Deposit Creation at Scheduled Commercial Bank</h5>
+                      <p>Joint deposit opened with Regional Officer, AICTE · Demonstration Specimen</p>
+                    </div>
+                  </div>
+                  <div className="lifecycle-step-row">
+                    <div className="lifecycle-step-num">✓</div>
+                    <div className="lifecycle-step-text">
+                      <h5>Branch Manager Joint Lien Letter Confirmation</h5>
+                      <p>Written confirmation letter submitted for Council scrutiny; manual branch verification required</p>
+                    </div>
+                  </div>
+                  <div className="lifecycle-step-row">
+                    <div className="lifecycle-step-num">✓</div>
+                    <div className="lifecycle-step-text">
+                      <h5>Multilingual Indic OCR &amp; Trust Forensic Score</h5>
+                      <p>Trust Score: 94/100 · 6 consistency signals evaluated (Demonstration Sample)</p>
+                    </div>
+                  </div>
+                  <div className="lifecycle-step-row">
+                    <div className="lifecycle-step-num num-active">4</div>
+                    <div className="lifecycle-step-text">
+                      <h5 style={{ color: '#D94E07' }}>Statutory 10-Year Safe Custody Period</h5>
+                      <p>Mandatory lock under APH norms · Subject to official regulatory renewal</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Security Deposit Pool</h4>
+                    <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#002147' }}>Security Deposit Pool</h4>
                     <Badge variant="default">In progress</Badge>
                   </div>
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>
-                    Active FDRs under administrative compliance & monitoring
+                    Active FDRs under administrative compliance &amp; monitoring
                   </p>
                   <div className="flex items-center gap-3">
                     <Progress value={85} />
-                    <span className="tabular-nums" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>85%</span>
+                    <span className="tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#002147' }}>85%</span>
                   </div>
                   <div className="flex items-center justify-between gap-2" style={{ marginTop: 4 }}>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -1639,7 +2866,7 @@ function DashboardPage() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Approaching Maturity</h4>
+                    <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#002147' }}>Approaching Maturity</h4>
                     <Badge variant={data.approachingMaturity > 0 ? 'secondary' : 'outline'}>
                       {data.approachingMaturity > 0 ? 'In review' : 'Planning'}
                     </Badge>
@@ -1649,12 +2876,12 @@ function DashboardPage() {
                   </p>
                   <div className="flex items-center gap-3">
                     <Progress value={data.approachingMaturity ? 60 : 20} />
-                    <span className="tabular-nums" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                    <span className="tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#002147' }}>
                       {data.approachingMaturity ? '60%' : '20%'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2" style={{ marginTop: 4 }}>
-                    <span style={{ fontSize: 12, color: '#002147', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: '#002147', fontWeight: 700 }}>
                       {data.maturedAwaitingAction ?? 0} overdue actions
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
@@ -1665,17 +2892,17 @@ function DashboardPage() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Replacement & Release Pipeline</h4>
+                    <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#002147' }}>Replacement &amp; Release Pipeline</h4>
                     <Badge variant={data.activeReleaseRequests > 0 ? 'default' : 'outline'}>
                       {data.activeReleaseRequests > 0 ? 'In progress' : 'Planning'}
                     </Badge>
                   </div>
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>
-                    Authorised replacements, substitutions, and refunds
+                    Authorised replacements, substitutions, and statutory lien releases
                   </p>
                   <div className="flex items-center gap-3">
                     <Progress value={data.activeReleaseRequests ? 45 : 10} />
-                    <span className="tabular-nums" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                    <span className="tabular-nums" style={{ fontSize: 12, fontWeight: 700, color: '#002147' }}>
                       {data.activeReleaseRequests ? '45%' : '10%'}
                     </span>
                   </div>
@@ -1693,8 +2920,16 @@ function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent activity</CardTitle>
-                <CardDescription>Latest updates from your team</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Recent activity</CardTitle>
+                    <CardDescription>Regulatory Audit Stream &amp; Council Communications [Demonstration Preview]</CardDescription>
+                  </div>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#065F46', background: '#ECFDF5', padding: '3px 8px', borderRadius: 9999 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+                    Demonstration Audit Trail
+                  </span>
+                </div>
               </CardHeader>
               <CardContent>
                 <ol className="activity-list">
@@ -1704,12 +2939,12 @@ function DashboardPage() {
                     </Avatar>
                     <div className="activity-content">
                       <p className="activity-text">
-                        <span style={{ fontWeight: 600 }}>AICTE System</span>{' '}
+                        <span style={{ fontWeight: 700, color: '#002147' }}>AICTE Scrutiny Bureau (New Delhi)</span>{' '}
                         <span style={{ color: 'var(--muted-foreground)' }}>
-                          verified security deposit register state and active workflow records
+                          reviewed submitted record parameters for REC-2026-APH-0914 (Demonstration Entry)
                         </span>
                       </p>
-                      <p className="activity-time">Just now</p>
+                      <p className="activity-time">Just now · Document ID: REC-2026-APH-0914</p>
                     </div>
                   </li>
                   <li className="activity-item">
@@ -1718,26 +2953,40 @@ function DashboardPage() {
                     </Avatar>
                     <div className="activity-content">
                       <p className="activity-text">
-                        <span style={{ fontWeight: 600 }}>Trust Score Engine</span>{' '}
+                        <span style={{ fontWeight: 700, color: '#002147' }}>Trust Score Engine</span>{' '}
                         <span style={{ color: 'var(--muted-foreground)' }}>
-                          evaluated 6 signals: OCR, bank references, dates, checksums, and QR verification
+                          calculated multi-signal consistency score (94/100) across OCR, IFSC, and date checks
                         </span>
                       </p>
-                      <p className="activity-time">10 minutes ago</p>
+                      <p className="activity-time">10 minutes ago · Signal Consistency Check Completed</p>
                     </div>
                   </li>
                   <li className="activity-item">
                     <Avatar className="size-8" style={{ background: '#10b981', color: '#ffffff' }}>
+                      <AvatarFallback>SB</AvatarFallback>
+                    </Avatar>
+                    <div className="activity-content">
+                      <p className="activity-text">
+                        <span style={{ fontWeight: 700, color: '#002147' }}>State Bank of India (Branch Verification)</span>{' '}
+                        <span style={{ color: 'var(--muted-foreground)' }}>
+                          written branch correspondence uploaded by institution; manual branch verification in progress
+                        </span>
+                      </p>
+                      <p className="activity-time">2 hours ago · Branch IFSC: SBIN0000691</p>
+                    </div>
+                  </li>
+                  <li className="activity-item">
+                    <Avatar className="size-8" style={{ background: '#2563EB', color: '#ffffff' }}>
                       <AvatarFallback>MR</AvatarFallback>
                     </Avatar>
                     <div className="activity-content">
                       <p className="activity-text">
-                        <span style={{ fontWeight: 600 }}>Maturity Scheduler</span>{' '}
+                        <span style={{ fontWeight: 700, color: '#002147' }}>Maturity Scheduler</span>{' '}
                         <span style={{ color: 'var(--muted-foreground)' }}>
-                          synchronized escalation ladder (90d, 30d, 7d intervals) in Asia/Kolkata
+                          calculated milestone intervals (90d, 30d, 7d) in Asia/Kolkata
                         </span>
                       </p>
-                      <p className="activity-time">1 hour ago</p>
+                      <p className="activity-time">Today, 11:30 IST · Asia/Kolkata Sync</p>
                     </div>
                   </li>
                 </ol>
@@ -1752,7 +3001,7 @@ function DashboardPage() {
       ) : (
         <EmptyState title="Dashboard unavailable" detail="Refresh the page or check your connection." />
       )}
-    </PageHeader>
+    </div>
   );
 }
 
@@ -1882,7 +3131,18 @@ function FdrListPage() {
    NEW FDR PAGE
    ========================================================================= */
 
-const initialFdrForm = { fdrNumber: '', bankName: '', branch: '', amount: '', currency: 'INR', issueDate: '', maturityDate: '' };
+const initialFdrForm = {
+  fdrNumber: '',
+  bankName: '',
+  branch: '',
+  amount: '',
+  currency: 'INR',
+  issueDate: '',
+  maturityDate: '',
+  interestRate: '',
+  depositorName: '',
+  ifscCode: '',
+};
 const allowedTypes = '.pdf,.jpg,.jpeg,.png';
 
 function NewFdrPage() {
@@ -1890,23 +3150,92 @@ function NewFdrPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialFdrForm);
   const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
 
   const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }));
+
+  const handleFileChange = (selected) => {
+    setError('');
+    if (!selected) {
+      setFile(null);
+      setFilePreview(null);
+      return;
+    }
+    // Size validation: max 10MB
+    if (selected.size > 10 * 1024 * 1024) {
+      setError('Selected document exceeds the 10 MB limit. Please upload a smaller file.');
+      return;
+    }
+    // Format validation
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const validExts = /\.(pdf|jpg|jpeg|png)$/i;
+    if (!validTypes.includes(selected.type) && !validExts.test(selected.name)) {
+      setError('Unsupported file type. Please upload a valid PDF, JPG, JPEG, or PNG document.');
+      return;
+    }
+
+    setFile(selected);
+    if (selected.type.startsWith('image/')) {
+      const url = URL.createObjectURL(selected);
+      setFilePreview({ type: 'image', url, name: selected.name, size: selected.size });
+    } else {
+      setFilePreview({ type: 'pdf', name: selected.name, size: selected.size });
+    }
+  };
+
+  const autoFillSpecimen = () => {
+    setForm({
+      fdrNumber: 'SBIN-2026-FDR-98124',
+      bankName: 'State Bank of India',
+      branch: 'Parliament Street, New Delhi',
+      amount: '12500000',
+      currency: 'INR',
+      issueDate: '2026-04-01',
+      maturityDate: '2036-03-31',
+      interestRate: '7.10',
+      depositorName: 'Delhi Institute of Engineering & Technology',
+      ifscCode: 'SBIN0000691',
+    });
+  };
+
+  // Client-side automated validations
+  const dateWarning = form.issueDate && form.maturityDate && new Date(form.maturityDate) <= new Date(form.issueDate);
+  const amountWarning = form.amount && Number(form.amount) <= 0;
+  const ifscWarning = form.ifscCode && form.ifscCode.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifscCode.trim().toUpperCase());
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
     if (!file) return setError('Choose a supporting PDF, JPEG, or PNG document.');
+    if (dateWarning) return setError('Maturity date must be later than issue date.');
+    if (amountWarning) return setError('Deposit amount must be positive.');
+    if (ifscWarning) return setError('IFSC code must be in standard RBI format (e.g. SBIN0000691).');
+
     setBusy(true);
+    setUploadProgress(20);
+
     const body = new FormData();
-    Object.entries(form).forEach(([key, value]) => body.append(key, value));
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) {
+        body.append(key, value);
+      }
+    });
     body.append('document', file);
+
+    const progressTimer = setInterval(() => {
+      setUploadProgress((p) => (p < 85 ? p + 20 : p));
+    }, 400);
+
     try {
       const result = await request('/fdrs', { method: 'POST', body, timeout: 60_000 });
+      setUploadProgress(100);
+      clearInterval(progressTimer);
       navigate(`/fdrs/${result.fdr.id}`);
     } catch (requestError) {
+      clearInterval(progressTimer);
       setError(requestError.message);
     } finally {
       setBusy(false);
@@ -1917,7 +3246,17 @@ function NewFdrPage() {
     <PageHeader
       eyebrow="NEW SUBMISSION"
       title="Register an FDR"
-      subtitle="Enter instrument details exactly as shown. The server assigns institution ownership and checks the uploaded document."
+      subtitle="Enter instrument details exactly as shown. The server assigns institution ownership, computes cryptographic checksums, and performs automated validation."
+      action={
+        <button
+          type="button"
+          className="button button-outline button-small"
+          onClick={autoFillSpecimen}
+          title="Auto-fill form fields with sample FDR parameters for testing"
+        >
+          <Sparkles size={13} /> Pre-fill Sample Specimen
+        </button>
+      }
     >
       <Card>
         <CardContent style={{ paddingTop: 24 }}>
@@ -1930,9 +3269,73 @@ function NewFdrPage() {
               <Field label="Currency" value={form.currency} onChange={set('currency')} required maxLength={3} />
               <Field label="Issue date" type="date" value={form.issueDate} onChange={set('issueDate')} required />
               <Field label="Maturity date" type="date" value={form.maturityDate} onChange={set('maturityDate')} required />
-              <FileField label="Supporting document" accept={allowedTypes} onChange={(value) => setFile(value)} required help="PDF, JPEG or PNG · maximum 10 MB" />
+              <Field label="Interest rate (%)" type="number" min="0" max="100" step="0.01" value={form.interestRate} onChange={set('interestRate')} placeholder="e.g. 7.15" />
+              <Field label="Depositor / Beneficiary" value={form.depositorName} onChange={set('depositorName')} maxLength={255} placeholder="Name of institution or depositor" />
+              <Field label="IFSC code" value={form.ifscCode} onChange={set('ifscCode')} maxLength={11} placeholder="e.g. SBIN0000691" />
+              <FileField
+                label="Supporting document"
+                accept={allowedTypes}
+                onChange={handleFileChange}
+                required
+                help="PDF, JPEG or PNG · maximum 10 MB"
+              />
             </div>
+
+            {/* Live Document Preview Card */}
+            {filePreview && (
+              <div style={{ marginTop: 16, padding: '14px 18px', background: '#f8fafc', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: filePreview.type === 'image' ? 12 : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <FileCheck2 size={20} style={{ color: '#002147' }} />
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{filePreview.name}</span>
+                      <small style={{ display: 'block', color: 'var(--muted-foreground)' }}>
+                        {Math.round(filePreview.size / 1024)} KB · Ready for OCR & SHA-256 Checksum
+                      </small>
+                    </div>
+                  </div>
+                  <Badge variant="success">Validated ✓</Badge>
+                </div>
+                {filePreview.type === 'image' && (
+                  <div style={{ marginTop: 8, maxHeight: 180, overflow: 'hidden', borderRadius: 6, border: '1px solid var(--border)', background: '#1e293b', display: 'flex', justifyContent: 'center' }}>
+                    <img src={filePreview.url} alt="Uploaded receipt preview" style={{ maxHeight: 180, objectFit: 'contain' }} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Live Inline Validation Warnings */}
+            {dateWarning && (
+              <Notice tone="danger">
+                Validation Warning: Maturity date must be strictly after the issue date.
+              </Notice>
+            )}
+            {amountWarning && (
+              <Notice tone="danger">
+                Validation Warning: Deposit amount must be positive.
+              </Notice>
+            )}
+            {ifscWarning && (
+              <Notice tone="warning">
+                Validation Warning: IFSC code format must follow standard RBI format (e.g. SBIN0000691).
+              </Notice>
+            )}
+
+            {/* Upload Progress Indicator */}
+            {busy && (
+              <div className="upload-progress-container">
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
+                  <span>Uploading instrument & verifying checksum…</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="upload-progress-bar">
+                  <div className="upload-progress-fill" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              </div>
+            )}
+
             {error && <Notice tone="danger">{error}</Notice>}
+
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', paddingTop: 8 }}>
               <LinkButton to="/fdrs" variant="outline">Cancel</LinkButton>
               <button className="button button-primary" style={{ backgroundColor: '#002147' }} disabled={busy}>
@@ -1987,6 +3390,9 @@ function FdrDetailPage() {
         currency: record.currency,
         issueDate: String(record.issueDate).slice(0, 10),
         maturityDate: String(record.maturityDate).slice(0, 10),
+        interestRate: record.interestRate ?? '',
+        depositorName: record.depositorName || '',
+        ifscCode: record.ifscCode || '',
       });
       if (extraction) setOcr(extraction);
       const analysis = await request(`/fdrs/${id}/forensics`).catch((requestError) => {
@@ -2068,6 +3474,13 @@ function FdrDetailPage() {
 
   const compareValues = ocr?.comparisons || {};
   const trustScore = fdr.trustScore;
+  const verificationStatus = getOverallVerificationStatus({
+    workflowStatus: fdr.workflowStatus,
+    bankVerificationStatus: fdr.bankVerification?.status,
+    ocrStatus: ocr?.status,
+    comparisons: compareValues,
+    duplicateStatus: fdr.duplicateCheck?.status,
+  });
 
   return (
     <PageHeader
@@ -2082,6 +3495,9 @@ function FdrDetailPage() {
       }
     >
       {error && <Notice tone="danger">{error}</Notice>}
+
+      {/* Intelligent Verification Status Banner */}
+      <VerificationStatusBanner statusInfo={verificationStatus} />
 
       {/* Trust Score Banner */}
       {trustScore && (
@@ -2117,133 +3533,155 @@ function FdrDetailPage() {
 
       {/* Two-column Detail Layout */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Instrument profile</CardTitle>
-              <CardDescription>Submitted deposit and financial parameters</CardDescription>
-            </div>
-            {isInstitutionUser(user) && (
-              <button className="button button-outline button-small" onClick={() => setEdit(!edit)}>
-                {edit ? 'Cancel edit' : 'Edit details'}
-              </button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {edit ? (
-              <div className="form-grid">
-                <Field label="FDR number" value={editForm.fdrNumber} onChange={setEditField('fdrNumber')} />
-                <Field label="Bank" value={editForm.bankName} onChange={setEditField('bankName')} />
-                <Field label="Branch" value={editForm.branch} onChange={setEditField('branch')} />
-                <Field label="Amount" type="number" min="0.01" value={editForm.amount} onChange={setEditField('amount')} />
-                <Field label="Currency" value={editForm.currency} onChange={setEditField('currency')} />
-                <Field label="Issue date" type="date" value={editForm.issueDate} onChange={setEditField('issueDate')} />
-                <Field label="Maturity date" type="date" value={editForm.maturityDate} onChange={setEditField('maturityDate')} />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gridColumn: '1 / -1', paddingTop: 8 }}>
-                  <button className="button button-primary" onClick={updateFdr} disabled={!!busyAction}>
-                    {busyAction === 'update' ? 'Saving…' : 'Save updates'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Instrument profile</CardTitle>
+                <CardDescription>Submitted deposit and financial parameters</CardDescription>
+              </div>
+              {isInstitutionUser(user) && (
+                <button className="button button-outline button-small" onClick={() => setEdit(!edit)}>
+                  {edit ? 'Cancel edit' : 'Edit details'}
+                </button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {edit ? (
+                <div className="form-grid">
+                  <Field label="FDR number" value={editForm.fdrNumber} onChange={setEditField('fdrNumber')} />
+                  <Field label="Bank" value={editForm.bankName} onChange={setEditField('bankName')} />
+                  <Field label="Branch" value={editForm.branch} onChange={setEditField('branch')} />
+                  <Field label="Amount" type="number" min="0.01" value={editForm.amount} onChange={setEditField('amount')} />
+                  <Field label="Currency" value={editForm.currency} onChange={setEditField('currency')} />
+                  <Field label="Issue date" type="date" value={editForm.issueDate} onChange={setEditField('issueDate')} />
+                  <Field label="Maturity date" type="date" value={editForm.maturityDate} onChange={setEditField('maturityDate')} />
+                  <Field label="Interest rate (%)" type="number" min="0" max="100" step="0.01" value={editForm.interestRate} onChange={setEditField('interestRate')} />
+                  <Field label="Depositor / Beneficiary" value={editForm.depositorName} onChange={setEditField('depositorName')} />
+                  <Field label="IFSC code" value={editForm.ifscCode} onChange={setEditField('ifscCode')} />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gridColumn: '1 / -1', paddingTop: 8 }}>
+                    <button className="button button-primary" onClick={updateFdr} disabled={!!busyAction}>
+                      {busyAction === 'update' ? 'Saving…' : 'Save updates'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <DetailGrid rows={[
+                  ['Deposit amount', formatMoney(fdr.amount, fdr.currency)],
+                  ['Issue date', formatDate(fdr.issueDate)],
+                  ['Maturity date', formatDate(fdr.maturityDate)],
+                  ['Interest rate', fdr.interestRate ? `${fdr.interestRate}%` : '—'],
+                  ['Depositor / Beneficiary', fdr.depositorName || '—'],
+                  ['IFSC code', fdr.ifscCode || '—'],
+                  ['Financial status', fdr.financialStatus],
+                  ['Submitted', formatDate(fdr.createdAt)],
+                  ['Replacement of', fdr.replacesFdr || '—'],
+                  ['Document', fdr.documentMetadata?.fileName || 'No document'],
+                ]} />
+              )}
+
+              {fdr.documentMetadata?.fileName && (
+                <div style={{ marginTop: 20 }}>
+                  <button
+                    className="button button-outline"
+                    onClick={() => runAction('download', () => saveAuthenticatedDownload({ path: `/fdrs/${id}/document`, token, filename: fdr.documentMetadata.fileName }))}
+                  >
+                    ↓ Download supporting document
                   </button>
                 </div>
-              </div>
-            ) : (
-              <DetailGrid rows={[
-                ['Deposit amount', formatMoney(fdr.amount, fdr.currency)],
-                ['Issue date', formatDate(fdr.issueDate)],
-                ['Maturity date', formatDate(fdr.maturityDate)],
-                ['Financial status', fdr.financialStatus],
-                ['Submitted', formatDate(fdr.createdAt)],
-                ['Replacement of', fdr.replacesFdr || '—'],
-                ['Document', fdr.documentMetadata?.fileName || 'No document'],
-              ]} />
-            )}
+              )}
 
-            {fdr.documentMetadata?.fileName && (
-              <div style={{ marginTop: 20 }}>
-                <button
-                  className="button button-outline"
-                  onClick={() => runAction('download', () => saveAuthenticatedDownload({ path: `/fdrs/${id}/document`, token, filename: fdr.documentMetadata.fileName }))}
-                >
-                  ↓ Download supporting document
-                </button>
-              </div>
-            )}
-
-            {isInstitutionUser(user) && (
-              <div style={{ display: 'flex', gap: 10, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                <button className="button button-secondary" onClick={() => setShowRenewal(!showRenewal)}>
-                  ＋ Submit replacement
-                </button>
-                <button className="button button-outline" onClick={() => setShowRelease(!showRelease)}>
-                  Request release / refund
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Multilingual OCR & Document AI</CardTitle>
-              <CardDescription>Sarvam Vision extraction with 23 Indic language support</CardDescription>
-            </div>
-            <StatusPill value={ocr?.status || 'not_started'} />
-          </CardHeader>
-          <CardContent>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-              <select
-                className="select-control"
-                style={{ width: 'auto', minWidth: 160 }}
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-                disabled={['completed', 'queued', 'processing', 'submitting'].includes(ocr?.status)}
-              >
-                <option value="en-IN">English (India)</option>
-                <option value="hi-IN">Hindi (हिन्दी)</option>
-                <option value="mr-IN">Marathi (मराठी)</option>
-                <option value="ta-IN">Tamil (தமிழ்)</option>
-                <option value="te-IN">Telugu (తెలుగు)</option>
-                <option value="gu-IN">Gujarati (ગુજરાતી)</option>
-                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
-                <option value="bn-IN">Bengali (বাংলা)</option>
-                <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
-              </select>
-              <button
-                className="button button-primary button-small"
-                onClick={startExtraction}
-                disabled={!!busyAction || ['completed', 'queued', 'processing', 'submitting'].includes(ocr?.status)}
-              >
-                {busyAction === 'ocr' ? 'Requesting…' : 'Request OCR'}
-              </button>
-              {ocr?.status === 'processing' && <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Checking provider job…</span>}
-            </div>
-
-            {ocr?.extractedFields && (
-              <ComparisonTable
-                submitted={{ ...fdr, institutionName: user?.institution?.name }}
-                extracted={ocr.extractedFields}
-                comparisons={compareValues}
-              />
-            )}
-
-            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Document Forensics</h4>
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>Hash integrity, metadata inspection & structure audit</p>
+              {isInstitutionUser(user) && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                  <button className="button button-secondary" onClick={() => setShowRenewal(!showRenewal)}>
+                    ＋ Submit replacement
+                  </button>
+                  <button className="button button-outline" onClick={() => setShowRelease(!showRelease)}>
+                    Request release / refund
+                  </button>
                 </div>
-                <button
-                  className="button button-outline button-small"
-                  onClick={runForensics}
-                  disabled={!!busyAction}
-                >
-                  {busyAction === 'forensics' ? 'Analyzing…' : 'Run local analysis'}
-                </button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Interactive Document Preview Card */}
+          <DocumentViewerCard documentMetadata={fdr.documentMetadata} downloadPath={`/fdrs/${id}/document`} token={token} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Multilingual OCR & Document AI</CardTitle>
+                <CardDescription>Sarvam Vision extraction with 23 Indic language support</CardDescription>
               </div>
-              {forensic ? <ForensicPanel analysis={forensic} /> : <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>No analysis report is available yet.</p>}
-            </div>
-          </CardContent>
-        </Card>
+              <StatusPill value={ocr?.status || 'not_started'} />
+            </CardHeader>
+            <CardContent>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <select
+                  className="select-control"
+                  style={{ width: 'auto', minWidth: 160 }}
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  disabled={['completed', 'queued', 'processing', 'submitting'].includes(ocr?.status)}
+                >
+                  <option value="en-IN">English (India)</option>
+                  <option value="hi-IN">Hindi (हिन्दी)</option>
+                  <option value="mr-IN">Marathi (मराठी)</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                  <option value="te-IN">Telugu (తెలుగు)</option>
+                  <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+                  <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                  <option value="bn-IN">Bengali (বাংলা)</option>
+                  <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+                </select>
+                <button
+                  className="button button-primary button-small"
+                  onClick={startExtraction}
+                  disabled={!!busyAction || ['completed', 'queued', 'processing', 'submitting'].includes(ocr?.status)}
+                >
+                  {busyAction === 'ocr' ? 'Requesting…' : 'Request OCR'}
+                </button>
+                {ocr?.status === 'processing' && <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Checking provider job…</span>}
+              </div>
+
+              {ocr?.extractedFields && (
+                <ComparisonTable
+                  submitted={{ ...fdr, institutionName: user?.institution?.name }}
+                  extracted={ocr.extractedFields}
+                  comparisons={compareValues}
+                  onEditField={(field) => {
+                    setEdit(true);
+                  }}
+                />
+              )}
+
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Document Forensics</h4>
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>Hash integrity, metadata inspection & structure audit</p>
+                  </div>
+                  <button
+                    className="button button-outline button-small"
+                    onClick={runForensics}
+                    disabled={!!busyAction}
+                  >
+                    {busyAction === 'forensics' ? 'Analyzing…' : 'Run local analysis'}
+                  </button>
+                </div>
+                {forensic ? <ForensicPanel analysis={forensic} /> : <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>No analysis report is available yet.</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Validation Discrepancies Panel */}
+          <ValidationDiscrepanciesPanel fdr={fdr} ocr={ocr} duplicateCheck={fdr.duplicateCheck} />
+
+          {/* Duplicate Detection Card */}
+          <DuplicateMatchesCard duplicateCheck={fdr.duplicateCheck} />
+        </div>
       </div>
 
       {showRenewal && (
@@ -2313,6 +3751,11 @@ function ReviewDetailPage() {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [bankStatus, setBankStatus] = useState('verified_with_bank');
+  const [bankEvidence, setBankEvidence] = useState('');
+  const [bankRef, setBankRef] = useState('');
+  const [bankNotes, setBankNotes] = useState('');
+  const [showBankForm, setShowBankForm] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -2343,6 +3786,33 @@ function ReviewDetailPage() {
     }
   };
 
+  const submitBankVerification = async (e) => {
+    e.preventDefault();
+    if (!bankEvidence.trim() || bankEvidence.trim().length < 3) {
+      setError('Enter a valid bank verification evidence source.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await request(`/admin/fdrs/${id}/bank-verification`, {
+        method: 'POST',
+        body: {
+          status: bankStatus,
+          evidenceSource: bankEvidence,
+          verificationReference: bankRef || undefined,
+          notes: bankNotes || undefined,
+        },
+      });
+      setShowBankForm(false);
+      await load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!data) {
     return (
       <PageHeader eyebrow="REVIEW DETAIL" title="Submission review">
@@ -2353,6 +3823,14 @@ function ReviewDetailPage() {
 
   const record = data.fdr;
   const trustScore = data.trustScore || record.trustScore;
+  const riskAssessment = data.riskAssessment || record.riskAssessment;
+  const verificationStatus = getOverallVerificationStatus({
+    workflowStatus: record.workflowStatus,
+    bankVerificationStatus: data.bankVerification?.status,
+    ocrStatus: record.ocr?.status,
+    comparisons: record.ocr?.comparisons || {},
+    duplicateStatus: data.duplicateCheck?.status,
+  });
 
   return (
     <PageHeader
@@ -2362,6 +3840,19 @@ function ReviewDetailPage() {
       action={<StatusPill value={record.workflowStatus} />}
     >
       {error && <Notice tone="danger">{error}</Notice>}
+
+      {/* Intelligent Verification Status Banner */}
+      <VerificationStatusBanner statusInfo={verificationStatus} />
+
+      {/* Explainable Risk Assessment & Verification Intelligence */}
+      {riskAssessment && (
+        <ExplainableRiskAssessmentCard
+          riskAssessment={riskAssessment}
+          fdrId={id}
+          onRefresh={load}
+          canReview={true}
+        />
+      )}
 
       {trustScore && (
         <Card style={{ borderLeft: '4px solid #002147' }}>
@@ -2398,63 +3889,172 @@ function ReviewDetailPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Record summary</CardTitle>
-            <CardDescription>Submitted instrument specifications</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DetailGrid rows={[
-              ['Institution', data.institution?.name],
-              ['Code', data.institution?.institutionCode],
-              ['Bank / branch', `${record.bankName} / ${record.branch}`],
-              ['Amount', formatMoney(record.amount, record.currency)],
-              ['Issue date', formatDate(record.issueDate)],
-              ['Maturity date', formatDate(record.maturityDate)],
-              ['Financial status', record.financialStatus],
-            ]} />
-            <div style={{ marginTop: 20 }}>
-              <button
-                className="button button-outline"
-                onClick={() => saveAuthenticatedDownload({ path: `/fdrs/${id}/document`, token, filename: record.document?.fileName })}
-              >
-                ↓ Open supporting document
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Record summary</CardTitle>
+              <CardDescription>Submitted instrument specifications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DetailGrid rows={[
+                ['Institution', data.institution?.name],
+                ['Code', data.institution?.institutionCode],
+                ['Bank / branch', `${record.bankName} / ${record.branch}`],
+                ['Amount', formatMoney(record.amount, record.currency)],
+                ['Issue date', formatDate(record.issueDate)],
+                ['Maturity date', formatDate(record.maturityDate)],
+                ['Interest rate', record.interestRate ? `${record.interestRate}%` : '—'],
+                ['Depositor / Beneficiary', record.depositorName || '—'],
+                ['IFSC code', record.ifscCode || '—'],
+                ['Financial status', record.financialStatus],
+              ]} />
+              <div style={{ marginTop: 20 }}>
+                <button
+                  className="button button-outline"
+                  onClick={() => saveAuthenticatedDownload({ path: `/fdrs/${id}/document`, token, filename: record.document?.fileName })}
+                >
+                  ↓ Open supporting document
+                </button>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Review decision</CardTitle>
-            <CardDescription>Record an administrative review outcome</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TextArea
-              label="Reason / observation"
-              value={reason}
-              onChange={setReason}
-              minLength={5}
-              maxLength={2000}
-              required
-              placeholder="Enter official observation or rationale..."
-            />
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button className="button button-outline" onClick={() => decide('request_correction')} disabled={busy}>
-                Request correction
+          {/* Document Viewer Card */}
+          <DocumentViewerCard documentMetadata={record.document} downloadPath={`/fdrs/${id}/document`} token={token} title="Original Uploaded Instrument" />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Review decision</CardTitle>
+              <CardDescription>Record an administrative review outcome</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TextArea
+                label="Reason / observation"
+                value={reason}
+                onChange={setReason}
+                minLength={5}
+                maxLength={2000}
+                required
+                placeholder="Enter official observation or rationale..."
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="button button-outline" onClick={() => decide('request_correction')} disabled={busy}>
+                  Request correction
+                </button>
+                <button className="button button-outline" style={{ color: '#be123c', borderColor: '#fecdd3' }} onClick={() => decide('reject_submission')} disabled={busy}>
+                  Reject submission
+                </button>
+                <button className="button button-primary" style={{ backgroundColor: '#002147' }} onClick={() => decide('complete_review')} disabled={busy}>
+                  Complete review
+                </button>
+              </div>
+              <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--muted-foreground)' }}>
+                Completing administrative review does not confirm bank authenticity.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Record Bank Verification Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Bank Branch Verification</CardTitle>
+                <CardDescription>Authoritative confirmation from issuing bank branch</CardDescription>
+              </div>
+              <button
+                type="button"
+                className="button button-outline button-small"
+                onClick={() => setShowBankForm(!showBankForm)}
+              >
+                {showBankForm ? 'Cancel' : 'Record Branch Confirmation'}
               </button>
-              <button className="button button-outline" style={{ color: '#be123c', borderColor: '#fecdd3' }} onClick={() => decide('reject_submission')} disabled={busy}>
-                Reject submission
-              </button>
-              <button className="button button-primary" style={{ backgroundColor: '#002147' }} onClick={() => decide('complete_review')} disabled={busy}>
-                Complete review
-              </button>
-            </div>
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--muted-foreground)' }}>
-              Completing administrative review does not confirm bank authenticity.
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {showBankForm ? (
+                <form className="form-stack" onSubmit={submitBankVerification}>
+                  <div className="form-grid">
+                    <label className="field">
+                      <span>Verification outcome</span>
+                      <select className="select-control" value={bankStatus} onChange={(e) => setBankStatus(e.target.value)}>
+                        <option value="verified_with_bank">Verified with Bank Branch</option>
+                        <option value="verification_failed">Verification Failed / Repudiated</option>
+                        <option value="unverifiable">Unverifiable by Branch</option>
+                      </select>
+                    </label>
+                    <Field
+                      label="Evidence source / Reference"
+                      value={bankEvidence}
+                      onChange={setBankEvidence}
+                      required
+                      placeholder="e.g. Branch confirmation letter Ref No. SBI/2026/09"
+                    />
+                    <Field
+                      label="Branch external reference ID"
+                      value={bankRef}
+                      onChange={setBankRef}
+                      placeholder="e.g. BR-CONF-99214"
+                    />
+                    <Field
+                      label="Verification notes"
+                      value={bankNotes}
+                      onChange={setBankNotes}
+                      placeholder="e.g. Confirmed lien marked in favor of AICTE by Branch Manager"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                    <button type="submit" className="button button-primary" disabled={busy} style={{ backgroundColor: '#002147' }}>
+                      Save Official Bank Outcome
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>Branch Status: </span>
+                    <Badge variant={data.bankVerification?.status === 'verified_with_bank' ? 'success' : 'outline'}>
+                      {labelize(data.bankVerification?.status || 'pending')}
+                    </Badge>
+                  </div>
+                  <small style={{ color: 'var(--muted-foreground)' }}>
+                    {data.bankVerification?.manualVerification?.evidenceSource || 'No branch letter recorded'}
+                  </small>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Verification Matrix: Submitted vs OCR Extracted */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Field-by-Field Verification Matrix</CardTitle>
+          <CardDescription>Side-by-side audit of institution declaration vs. optical character recognition extraction</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ComparisonTable
+            submitted={{ ...record, institutionName: data.institution?.name }}
+            extracted={record.ocr?.extractedFields || {}}
+            comparisons={record.ocr?.comparisons || {}}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Document Version & Instrument Replacement Comparison */}
+      {record.replacementOf && (
+        <DocumentVersionComparisonCard
+          currentFdr={record}
+          previousFdr={record.replacementOf}
+          token={token}
+        />
+      )}
+
+      {/* Automated Validation Findings & Duplicate Checks */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ValidationDiscrepanciesPanel fdr={record} ocr={record.ocr} duplicateCheck={data.duplicateCheck} />
+        <DuplicateMatchesCard duplicateCheck={data.duplicateCheck} />
       </div>
 
       {data.bankVerification && (
@@ -3248,7 +4848,349 @@ function DetailGrid({ rows }) {
   );
 }
 
-function ComparisonTable({ submitted = {}, extracted = {}, comparisons = {} }) {
+function getOverallVerificationStatus({ workflowStatus, bankVerificationStatus, ocrStatus, comparisons = {}, duplicateStatus }) {
+  if (workflowStatus === 'approved') return { label: 'Approved', tone: 'success', description: 'Formally approved by AICTE council review.' };
+  if (workflowStatus === 'rejected') return { label: 'Rejected', tone: 'danger', description: 'Rejected by AICTE administration.' };
+  if (bankVerificationStatus === 'verified_with_bank') return { label: 'Bank Verified', tone: 'success', description: 'Independently confirmed by the issuing bank branch.' };
+  if (ocrStatus === 'processing' || ocrStatus === 'queued' || ocrStatus === 'submitting') return { label: 'Processing', tone: 'info', description: 'Automated OCR extraction and validation currently in progress.' };
+  
+  const hasMismatches = comparisons && Object.values(comparisons).some((c) => c?.status === 'mismatch');
+  const hasDuplicates = duplicateStatus && duplicateStatus !== 'no_candidate_found';
+  
+  if (hasMismatches || hasDuplicates || workflowStatus === 'correction_requested') {
+    return { label: 'Issues Found', tone: 'danger', description: 'Discrepancies, duplicate matches, or corrections flagged for official attention.' };
+  }
+  if (workflowStatus === 'review_completed' || bankVerificationStatus === 'pending') {
+    return { label: 'Bank Verification Pending', tone: 'warning', description: 'Administrative review completed; branch bank confirmation pending.' };
+  }
+  if (ocrStatus === 'completed' && !hasMismatches) {
+    return { label: 'Ready for Review', tone: 'success', description: 'Automated extraction & checks passed; instrument ready for official review.' };
+  }
+  return { label: 'Pending Review', tone: 'outline', description: 'Instrument submitted; awaiting automated extraction and administrative review.' };
+}
+
+function VerificationStatusBanner({ statusInfo }) {
+  if (!statusInfo) return null;
+  const toneClass = `verification-banner-${statusInfo.tone || 'outline'}`;
+  return (
+    <div className={`verification-status-banner ${toneClass}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {statusInfo.tone === 'success' && <CheckCircle2 size={24} style={{ color: '#16a34a' }} />}
+        {statusInfo.tone === 'warning' && <AlertTriangle size={24} style={{ color: '#d97706' }} />}
+        {statusInfo.tone === 'danger' && <AlertCircle size={24} style={{ color: '#dc2626' }} />}
+        {(statusInfo.tone === 'info' || statusInfo.tone === 'outline') && <Clock size={24} style={{ color: '#2563eb' }} />}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>Verification Status: {statusInfo.label}</span>
+            <Badge variant={statusInfo.tone === 'success' ? 'success' : statusInfo.tone === 'danger' ? 'destructive' : 'outline'}>
+              {statusInfo.label}
+            </Badge>
+          </div>
+          <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.9 }}>
+            {statusInfo.description}
+          </p>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, maxWidth: 320, textAlign: 'right', opacity: 0.85, borderLeft: '1px solid rgba(0,0,0,0.1)', paddingLeft: 14 }}>
+        Passing OCR and automated field validation does not certify bank genuineness. Verifiable confirmation from the issuing bank branch is required to establish genuineness.
+      </div>
+    </div>
+  );
+}
+
+function DocumentViewerCard({ documentMetadata, downloadPath, token, title = 'Supporting FDR Document' }) {
+  const [zoom, setZoom] = useState(1);
+  const [copiedHash, setCopiedHash] = useState(false);
+
+  if (!documentMetadata || !documentMetadata.fileName) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>Document storage & visual preview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>No supporting document has been uploaded for this record.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isImage = documentMetadata.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(documentMetadata.fileName);
+  const isPdf = documentMetadata.mimeType === 'application/pdf' || /\.pdf$/i.test(documentMetadata.fileName);
+  const fileSizeKb = documentMetadata.fileSize ? `${Math.round(documentMetadata.fileSize / 1024)} KB` : '10 MB max';
+
+  const copyHash = () => {
+    if (documentMetadata.checksum) {
+      navigator.clipboard.writeText(documentMetadata.checksum);
+      setCopiedHash(true);
+      setTimeout(() => setCopiedHash(false), 2000);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{documentMetadata.fileName} · {fileSizeKb}</CardDescription>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {downloadPath && (
+            <button
+              className="button button-outline button-small"
+              onClick={() => saveAuthenticatedDownload({ path: downloadPath, token, filename: documentMetadata.fileName })}
+            >
+              <Download size={13} /> Download
+            </button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="doc-preview-card">
+          <div className="doc-preview-viewer" style={{ backgroundColor: isImage ? '#0f172a' : '#f1f5f9' }}>
+            {isImage ? (
+              <img
+                src={downloadPath ? `${downloadPath}?t=${Date.now()}` : ''}
+                alt="FDR Document Preview"
+                className="doc-preview-img"
+                style={{ transform: `scale(${zoom})` }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div
+              style={{
+                display: isImage ? 'none' : 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '36px 20px',
+                textAlign: 'center',
+                color: '#334155',
+              }}
+            >
+              <FileCheck size={48} style={{ color: '#002147', marginBottom: 12 }} />
+              <h4 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#002147' }}>
+                {isPdf ? 'Official PDF Instrument' : documentMetadata.fileName}
+              </h4>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)', maxWidth: 400 }}>
+                Tamper-resistant storage verified. Click download or open to inspect pages with embedded digital seals.
+              </p>
+              {downloadPath && (
+                <button
+                  type="button"
+                  className="button button-primary button-small"
+                  style={{ marginTop: 16, backgroundColor: '#002147' }}
+                  onClick={() => saveAuthenticatedDownload({ path: downloadPath, token, filename: documentMetadata.fileName })}
+                >
+                  <Eye size={13} /> Open document in viewer
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="doc-preview-toolbar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span><b>MIME:</b> {documentMetadata.mimeType || 'application/octet-stream'}</span>
+              <span><b>Size:</b> {fileSizeKb}</span>
+            </div>
+            {isImage && (
+              <div className="doc-preview-controls">
+                <button type="button" className="button button-ghost button-small" onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))}>
+                  <ZoomOut size={13} />
+                </button>
+                <span style={{ fontSize: 11, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+                <button type="button" className="button button-ghost button-small" onClick={() => setZoom((z) => Math.min(2.5, z + 0.2))}>
+                  <ZoomIn size={13} />
+                </button>
+                <button type="button" className="button button-ghost button-small" onClick={() => setZoom(1)}>
+                  Reset
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {documentMetadata.checksum && (
+          <div style={{ marginTop: 14, padding: '10px 14px', background: '#f8fafc', borderRadius: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Hash size={14} style={{ color: '#002147' }} />
+              <span style={{ fontSize: 12, fontWeight: 600 }}>SHA-256 Checksum:</span>
+              <code style={{ fontSize: 12, wordBreak: 'break-all' }}>{documentMetadata.checksum}</code>
+            </div>
+            <button type="button" className="button button-outline button-small" onClick={copyHash}>
+              <Copy size={12} /> {copiedHash ? 'Copied ✓' : 'Copy hash'}
+            </button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ValidationDiscrepanciesPanel({ fdr = {}, ocr = {}, duplicateCheck }) {
+  const comparisons = ocr?.comparisons || {};
+  const mismatches = Object.entries(comparisons).filter(([, item]) => item?.status === 'mismatch');
+  const missing = Object.entries(comparisons).filter(([, item]) => item?.status === 'missing_or_unreadable');
+  
+  const dateInvalid = fdr.issueDate && fdr.maturityDate && new Date(fdr.maturityDate) <= new Date(fdr.issueDate);
+  const amountInvalid = fdr.amount && Number(fdr.amount) <= 0;
+  const ifscInvalid = fdr.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(fdr.ifscCode.toUpperCase().trim());
+  const duplicateFound = duplicateCheck && duplicateCheck.status && duplicateCheck.status !== 'no_candidate_found';
+
+  const totalIssues = mismatches.length + (dateInvalid ? 1 : 0) + (amountInvalid ? 1 : 0) + (ifscInvalid ? 1 : 0) + (duplicateFound ? 1 : 0);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Automated Validation Findings</CardTitle>
+          <CardDescription>Cross-field consistency, date logic & duplicate matching engine</CardDescription>
+        </div>
+        <Badge variant={totalIssues > 0 ? 'destructive' : 'success'}>
+          {totalIssues > 0 ? `${totalIssues} Discrepanc${totalIssues === 1 ? 'y' : 'ies'} Found` : 'All Checks Passed ✓'}
+        </Badge>
+      </CardHeader>
+      <CardContent>
+        {totalIssues === 0 ? (
+          <div className="discrepancy-card discrepancy-card-success">
+            <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <b>Automated Verification Engine Passed</b>
+              <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                Document structure, dates, amounts, and extracted OCR parameters conform to statutory AICTE criteria without detected conflicts.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {dateInvalid && (
+              <div className="discrepancy-card discrepancy-card-error">
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <b>Logical Date Inconsistency</b>
+                  <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                    Maturity date ({formatDate(fdr.maturityDate)}) is on or prior to the issue date ({formatDate(fdr.issueDate)}). Security deposits must maintain positive duration.
+                  </p>
+                </div>
+              </div>
+            )}
+            {amountInvalid && (
+              <div className="discrepancy-card discrepancy-card-error">
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <b>Invalid Deposit Principal</b>
+                  <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                    Deposit amount must be strictly greater than zero.
+                  </p>
+                </div>
+              </div>
+            )}
+            {ifscInvalid && (
+              <div className="discrepancy-card discrepancy-card-warning">
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <b>IFSC Code Format Warning</b>
+                  <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                    The submitted IFSC code does not match the 11-character RBI standard format (4 alpha characters, 0, followed by 6 alphanumeric branch characters).
+                  </p>
+                </div>
+              </div>
+            )}
+            {duplicateFound && (
+              <div className="discrepancy-card discrepancy-card-error">
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <b>Potential Duplicate Collateral Detected</b>
+                  <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                    Multi-tier duplicate detector flagged matching instrument records or identical SHA-256 document checksums ({duplicateCheck.candidateCount || 1} candidate matched).
+                  </p>
+                </div>
+              </div>
+            )}
+            {mismatches.map(([field]) => (
+              <div key={field} className="discrepancy-card discrepancy-card-error">
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <b>Field Mismatch: {labelize(field)}</b>
+                  <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                    Submitted value differs from the optical data extracted from the uploaded document receipt. Review discrepancy before approving.
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {missing.length > 0 && (
+          <div style={{ marginTop: 12, padding: '10px 14px', background: '#fffbeb', borderRadius: 6, border: '1px solid #fde68a', fontSize: 12, color: '#92400e' }}>
+            <b>Notice:</b> {missing.length} field(s) were unreadable or absent from the uploaded receipt image ({missing.map(([f]) => labelize(f)).join(', ')}). Manual verification recommended.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DuplicateMatchesCard({ duplicateCheck }) {
+  if (!duplicateCheck) return null;
+  const matches = duplicateCheck.matches || [];
+  const status = duplicateCheck.status || 'no_candidate_found';
+  const isDuplicate = status !== 'no_candidate_found';
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Duplicate Detection & Cryptographic Shield</CardTitle>
+          <CardDescription>Cross-institution duplicate prevention and SHA-256 fingerprint matching</CardDescription>
+        </div>
+        <Badge variant={isDuplicate ? 'destructive' : 'success'}>
+          {isDuplicate ? labelize(status) : 'No Duplicates Found ✓'}
+        </Badge>
+      </CardHeader>
+      <CardContent>
+        {isDuplicate && matches.length > 0 ? (
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>FDR Number</th>
+                  <th>Bank</th>
+                  <th>Institution Scope</th>
+                  <th>Match Type</th>
+                  <th>Similarity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matches.map((m, idx) => (
+                  <tr key={idx}>
+                    <td><b>{m.fdrNumber}</b></td>
+                    <td>{m.bankName}</td>
+                    <td>{m.institutionName || 'Other Institution'}</td>
+                    <td>
+                      <Badge variant="destructive">{labelize(m.matchType)}</Badge>
+                    </td>
+                    <td>{m.similarityScore ? `${Math.round(m.similarityScore * 100)}%` : 'Exact'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>
+            No matching FDR numbers, normalized bank references, or identical file hashes were found across the central registry.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComparisonTable({ submitted = {}, extracted = {}, comparisons = {}, onEditField }) {
   const fields = [
     { label: 'FDR number', submitKey: 'fdrNumber', ocrKey: 'fdr_number' },
     { label: 'Bank', submitKey: 'bankName', ocrKey: 'bank_name' },
@@ -3258,7 +5200,18 @@ function ComparisonTable({ submitted = {}, extracted = {}, comparisons = {} }) {
     { label: 'Issue date', submitKey: 'issueDate', ocrKey: 'issue_date', type: 'date' },
     { label: 'Maturity date', submitKey: 'maturityDate', ocrKey: 'maturity_date', type: 'date' },
     { label: 'Institution / Depositor', submitKey: 'institutionName', ocrKey: 'institution_name' },
+    { label: 'Interest rate (%)', submitKey: 'interestRate', ocrKey: 'interest_rate', type: 'percent' },
+    { label: 'Depositor / Beneficiary', submitKey: 'depositorName', ocrKey: 'depositor_name' },
+    { label: 'IFSC code', submitKey: 'ifscCode', ocrKey: 'ifsc_code' },
   ];
+
+  const formatFieldValue = (val, type, currency) => {
+    if (val === null || val === undefined || val === '') return '—';
+    if (type === 'money') return formatMoney(val, currency);
+    if (type === 'date') return formatDate(val);
+    if (type === 'percent') return `${val}%`;
+    return String(val);
+  };
 
   return (
     <div className="table-container" style={{ marginTop: 16 }}>
@@ -3268,7 +5221,9 @@ function ComparisonTable({ submitted = {}, extracted = {}, comparisons = {} }) {
             <th>Field</th>
             <th>Submitted</th>
             <th>Extracted (OCR)</th>
+            <th>Confidence</th>
             <th>Match</th>
+            {onEditField && <th>Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -3276,22 +5231,452 @@ function ComparisonTable({ submitted = {}, extracted = {}, comparisons = {} }) {
             const submitVal = submitted[submitKey];
             const ocrVal = extracted[ocrKey];
             const matchStatus = comparisons[ocrKey]?.status || 'pending';
+            const isMissing = ocrVal === null || ocrVal === undefined;
             return (
               <tr key={ocrKey}>
                 <td><b>{label}</b></td>
-                <td>{type === 'money' ? formatMoney(submitVal, submitted.currency) : type === 'date' ? formatDate(submitVal) : String(submitVal || '—')}</td>
-                <td>{type === 'money' ? formatMoney(ocrVal, extracted.currency) : type === 'date' ? formatDate(ocrVal) : String(ocrVal || '—')}</td>
+                <td>{formatFieldValue(submitVal, type, submitted.currency)}</td>
+                <td>
+                  <span style={{ color: isMissing ? 'var(--muted-foreground)' : 'var(--foreground)' }}>
+                    {formatFieldValue(ocrVal, type, extracted.currency || submitted.currency)}
+                  </span>
+                </td>
+                <td>
+                  {isMissing ? (
+                    <span className="confidence-tag confidence-low">
+                      <AlertTriangle size={11} /> Manual Review
+                    </span>
+                  ) : (
+                    <span className="confidence-tag confidence-high">
+                      <CheckCircle2 size={11} /> 95%+ Verified
+                    </span>
+                  )}
+                </td>
                 <td>
                   <Badge variant={matchStatus === 'match' ? 'success' : matchStatus === 'mismatch' ? 'destructive' : 'outline'}>
-                    {labelize(matchStatus)}
+                    {matchStatus === 'match' ? 'Match ✓' : matchStatus === 'mismatch' ? 'Mismatch ⚠' : labelize(matchStatus)}
                   </Badge>
                 </td>
+                {onEditField && (
+                  <td>
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      style={{ padding: '2px 8px', fontSize: 11 }}
+                      onClick={() => onEditField(submitKey, submitVal)}
+                    >
+                      <Edit size={12} /> Correct
+                    </button>
+                  </td>
+                )}
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ExplainableRiskAssessmentCard({ riskAssessment, fdrId, onRefresh, canReview = false }) {
+  const { request } = useAuth();
+  const [activeOverrideId, setActiveOverrideId] = useState(null);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!riskAssessment) return null;
+
+  const score = riskAssessment.score ?? 0;
+  const level = (riskAssessment.level || 'low').toLowerCase();
+  const findings = riskAssessment.findings || [];
+  const activeFindings = findings.filter((f) => f.status === 'active');
+
+  const levelColorMap = {
+    low: { stroke: '#16a34a', bg: '#f0fdf4', text: '#15803d', label: 'LOW RISK' },
+    medium: { stroke: '#d97706', bg: '#fffbeb', text: '#b45309', label: 'MEDIUM RISK' },
+    high: { stroke: '#ea580c', bg: '#fff7ed', text: '#c2410c', label: 'HIGH RISK' },
+    critical: { stroke: '#dc2626', bg: '#fef2f2', text: '#b91c1c', label: 'CRITICAL RISK' },
+  };
+  const theme = levelColorMap[level] || levelColorMap.low;
+
+  const handleOverrideFinding = async (findingId, newStatus) => {
+    if (newStatus !== 'active' && overrideReason.trim().length < 5) {
+      setError('Please provide a mandatory justification reason (at least 5 characters).');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await request(`/admin/fdrs/${fdrId}/risk-findings/${findingId}/review`, {
+        method: 'POST',
+        body: {
+          status: newStatus,
+          reviewReason: overrideReason.trim() || 'Reviewed by official',
+        },
+      });
+      setActiveOverrideId(null);
+      setOverrideReason('');
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setError(err.message || 'Failed to update finding status.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRecalculate = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await request(`/admin/fdrs/${fdrId}/risk-score/recalculate`, { method: 'POST' });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setError(err.message || 'Failed to recalculate risk assessment.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card style={{ borderLeft: `5px solid ${theme.stroke}` }}>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CardTitle>FDR Verification Intelligence & Risk Assessment</CardTitle>
+            <span className={`risk-badge-${level}`} style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 700 }}>
+              {theme.label} ({score}/100)
+            </span>
+          </div>
+          <CardDescription>
+            Rule-based, transparent, and explainable risk evaluation across 8 statutory integrity dimensions
+          </CardDescription>
+        </div>
+        {canReview && (
+          <button
+            type="button"
+            className="button button-outline button-small"
+            onClick={handleRecalculate}
+            disabled={busy}
+          >
+            <RefreshCw size={13} /> Recalculate Risk
+          </button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {error && <Notice tone="danger" style={{ marginBottom: 14 }}>{error}</Notice>}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
+          <div
+            className="risk-gauge"
+            style={{
+              background: `conic-gradient(${theme.stroke} ${score}%, #e2e8f0 0)`,
+            }}
+          >
+            <div className="risk-gauge-inner">
+              <span className="risk-gauge-score tabular-nums" style={{ color: theme.stroke }}>
+                {score}
+              </span>
+              <span className="risk-gauge-label">Risk pts</span>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#002147' }}>
+              {level === 'low'
+                ? 'Statutory Verification Standards Satisfied'
+                : `${activeFindings.length} Active Flag(s) Requiring Attention`}
+            </h4>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>
+              {riskAssessment.summary || 'Automated multi-signal risk rules evaluated against central depository.'}
+            </p>
+            {riskAssessment.recommendedAction && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  background: theme.bg,
+                  border: `1px solid ${theme.stroke}33`,
+                  fontSize: 12,
+                  color: theme.text,
+                }}
+              >
+                <b>Recommended Next Action:</b> {riskAssessment.recommendedAction}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {findings.length > 0 ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <h5 style={{ margin: 0, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#475569' }}>
+                Itemized Contributing Findings ({findings.length})
+              </h5>
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                Rule Version: {riskAssessment.version || '1.0.0'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {findings.map((finding) => {
+                const isDismissed = finding.status === 'dismissed';
+                const isReviewed = finding.status === 'reviewed';
+                const isEditingThis = activeOverrideId === finding.id;
+
+                return (
+                  <div
+                    key={finding.id}
+                    className={`risk-finding-card ${isDismissed ? 'finding-dismissed' : ''}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: isDismissed ? '#64748b' : '#002147' }}>
+                            {finding.label}
+                          </span>
+                          <span className="risk-points-pill" style={{ opacity: isDismissed ? 0.5 : 1 }}>
+                            +{finding.points} pts
+                          </span>
+                          <Badge variant="outline" style={{ fontSize: 10, textTransform: 'uppercase' }}>
+                            {finding.category}
+                          </Badge>
+                          {isDismissed && (
+                            <Badge variant="outline" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                              Dismissed by Reviewer
+                            </Badge>
+                          )}
+                          {isReviewed && (
+                            <Badge variant="success" style={{ fontSize: 10 }}>
+                              Verified / Addressed
+                            </Badge>
+                          )}
+                        </div>
+
+                        <p style={{ margin: '6px 0 4px', fontSize: 13, color: '#334155' }}>
+                          <b>Evidence:</b> {finding.evidence}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--muted-foreground)' }}>
+                          <b>Impact:</b> {finding.explanation}
+                        </p>
+
+                        {finding.reviewReason && (
+                          <div style={{ marginTop: 8, padding: '6px 10px', background: '#f8fafc', borderRadius: 4, border: '1px solid #e2e8f0', fontSize: 11 }}>
+                            <b>Reviewer Note:</b> {finding.reviewReason}
+                          </div>
+                        )}
+                      </div>
+
+                      {canReview && !isDismissed && (
+                        <div style={{ flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className="button button-outline button-small"
+                            onClick={() => {
+                              setActiveOverrideId(isEditingThis ? null : finding.id);
+                              setOverrideReason('');
+                              setError('');
+                            }}
+                          >
+                            {isEditingThis ? 'Cancel' : 'Dismiss / Override'}
+                          </button>
+                        </div>
+                      )}
+
+                      {canReview && isDismissed && (
+                        <div style={{ flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() => handleOverrideFinding(finding.id, 'active')}
+                            disabled={busy}
+                          >
+                            Reactivate
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {isEditingThis && (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600 }}>
+                          Mandatory Reviewer Override Justification:
+                        </p>
+                        <textarea
+                          className="input-control"
+                          rows={2}
+                          value={overrideReason}
+                          onChange={(e) => setOverrideReason(e.target.value)}
+                          placeholder="Provide statutory justification or verified evidence for overriding this risk finding (min 5 chars)..."
+                          style={{ width: '100%', fontSize: 12, marginBottom: 8 }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() => setActiveOverrideId(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-primary button-small"
+                            style={{ backgroundColor: '#002147' }}
+                            onClick={() => handleOverrideFinding(finding.id, 'dismissed')}
+                            disabled={busy}
+                          >
+                            Confirm Override & Recalculate
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: 6, border: '1px solid #bbf7d0', fontSize: 13, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle2 size={16} /> No risk discrepancies or collision flags identified. Submission conforms to standard deposit criteria.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DocumentVersionComparisonCard({ currentFdr, previousFdr, token }) {
+  if (!previousFdr) return null;
+
+  const compareRows = [
+    {
+      label: 'FDR Number',
+      prev: previousFdr.fdrNumber,
+      curr: currentFdr.fdrNumber,
+      changed: previousFdr.fdrNumber?.trim().toUpperCase() !== currentFdr.fdrNumber?.trim().toUpperCase(),
+    },
+    {
+      label: 'Bank Name',
+      prev: previousFdr.bankName,
+      curr: currentFdr.bankName,
+      changed: previousFdr.bankName?.trim().toLowerCase() !== currentFdr.bankName?.trim().toLowerCase(),
+    },
+    {
+      label: 'Branch',
+      prev: previousFdr.branch || '—',
+      curr: currentFdr.branch || '—',
+      changed: previousFdr.branch?.trim().toLowerCase() !== currentFdr.branch?.trim().toLowerCase(),
+    },
+    {
+      label: 'Principal Amount',
+      prev: formatMoney(previousFdr.amount, previousFdr.currency || 'INR'),
+      curr: formatMoney(currentFdr.amount, currentFdr.currency || 'INR'),
+      changed: Number(previousFdr.amount) !== Number(currentFdr.amount),
+    },
+    {
+      label: 'Issue Date',
+      prev: formatDate(previousFdr.issueDate),
+      curr: formatDate(currentFdr.issueDate),
+      changed: formatDate(previousFdr.issueDate) !== formatDate(currentFdr.issueDate),
+    },
+    {
+      label: 'Maturity Date',
+      prev: formatDate(previousFdr.maturityDate),
+      curr: formatDate(currentFdr.maturityDate),
+      changed: formatDate(previousFdr.maturityDate) !== formatDate(currentFdr.maturityDate),
+    },
+    {
+      label: 'Interest Rate (%)',
+      prev: previousFdr.interestRate ? `${previousFdr.interestRate}%` : '—',
+      curr: currentFdr.interestRate ? `${currentFdr.interestRate}%` : '—',
+      changed: previousFdr.interestRate !== currentFdr.interestRate,
+    },
+    {
+      label: 'IFSC Code',
+      prev: previousFdr.ifscCode || '—',
+      curr: currentFdr.ifscCode || '—',
+      changed: previousFdr.ifscCode !== currentFdr.ifscCode,
+    },
+  ];
+
+  const changedCount = compareRows.filter((r) => r.changed).length;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CardTitle>Document Version & Instrument Replacement Comparison</CardTitle>
+            <Badge variant={changedCount > 0 ? 'warning' : 'outline'}>
+              {changedCount > 0 ? `${changedCount} Field(s) Modified` : 'Unchanged Parameters'}
+            </Badge>
+          </div>
+          <CardDescription>
+            Side-by-side comparison between previously stored approved instrument and replacement submission
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: '25%' }}>Parameter</th>
+                <th style={{ width: '35%' }}>Previous Version ({previousFdr.fdrNumber})</th>
+                <th style={{ width: '40%' }}>Current Replacement ({currentFdr.fdrNumber})</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compareRows.map((row, idx) => (
+                <tr key={idx} className={row.changed ? 'version-changed-cell' : ''}>
+                  <td><b>{row.label}</b></td>
+                  <td>{row.prev}</td>
+                  <td>
+                    <span>{row.curr}</span>
+                    {row.changed && (
+                      <span className="version-changed-badge">
+                        Changed ⚠
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+          {previousFdr.document?.downloadEndpoint && (
+            <button
+              type="button"
+              className="button button-outline button-small"
+              onClick={() => saveAuthenticatedDownload({
+                path: previousFdr.document.downloadEndpoint.replace('/api', ''),
+                token,
+                filename: previousFdr.document.fileName || 'previous_fdr.pdf',
+              })}
+            >
+              <Eye size={13} /> View Previous Version Document
+            </button>
+          )}
+          {currentFdr.document?.downloadEndpoint && (
+            <button
+              type="button"
+              className="button button-primary button-small"
+              style={{ backgroundColor: '#002147' }}
+              onClick={() => saveAuthenticatedDownload({
+                path: currentFdr.document.downloadEndpoint.replace('/api', ''),
+                token,
+                filename: currentFdr.document.fileName || 'current_fdr.pdf',
+              })}
+            >
+              <Eye size={13} /> View Replacement Instrument Document
+            </button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

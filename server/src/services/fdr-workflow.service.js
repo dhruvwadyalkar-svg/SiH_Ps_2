@@ -8,6 +8,7 @@ import User from '../models/User.js';
 import { deleteStoredDocument, storeUploadedDocument } from './document-storage.service.js';
 import { getFdrById, serializeFdr } from './fdr.service.js';
 import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import { calculateFdrRiskScore, mapRiskScoreToLevel } from './fdr-risk-score.service.js';
 import {
   generateBankVerificationEmailDraft,
   scanDocumentForQrCode,
@@ -63,6 +64,9 @@ const safeFdrSummary = (record) => ({
   currency: record.currency,
   issueDate: record.issueDate,
   maturityDate: record.maturityDate,
+  interestRate: record.interestRate ?? null,
+  depositorName: record.depositorName || null,
+  ifscCode: record.ifscCode || null,
   workflowStatus: record.workflowStatus,
   financialStatus: record.financialStatus,
   createdAt: record.createdAt,
@@ -73,6 +77,8 @@ export const listFdrReviewQueue = async ({ user, query }) => {
   requireOfficial(user);
   const filter = {};
   if (query.workflowStatus) filter.workflowStatus = query.workflowStatus;
+  if (query.riskLevel) filter['riskAssessment.level'] = query.riskLevel.toLowerCase();
+  if (query.bank) filter.bankName = new RegExp(escapeRegex(query.bank), 'i');
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');
     const institutions = await Institution.find({
@@ -84,12 +90,25 @@ export const listFdrReviewQueue = async ({ user, query }) => {
     ];
   }
 
+  let sortOptions = { createdAt: -1, _id: -1 };
+  if (query.sortBy === 'risk_desc') {
+    sortOptions = { 'riskAssessment.score': -1, createdAt: -1 };
+  } else if (query.sortBy === 'risk_asc') {
+    sortOptions = { 'riskAssessment.score': 1, createdAt: -1 };
+  } else if (query.sortBy === 'urgency') {
+    sortOptions = { 'riskAssessment.score': -1, maturityDate: 1 };
+  } else if (query.sortBy === 'date_asc') {
+    sortOptions = { createdAt: 1, _id: 1 };
+  } else if (query.sortBy === 'date_desc') {
+    sortOptions = { createdAt: -1, _id: -1 };
+  }
+
   const [total, records] = await Promise.all([
     FDR.countDocuments(filter),
     FDR.find(filter)
-      .select('institution fdrNumber bankName branch amount currency issueDate maturityDate workflowStatus submittedAt createdAt trustScore bankVerification duplicateCheck')
+      .select('institution fdrNumber bankName branch amount currency issueDate maturityDate workflowStatus submittedAt createdAt trustScore bankVerification duplicateCheck riskAssessment')
       .populate('institution', 'name institutionCode')
-      .sort({ createdAt: -1, _id: -1 })
+      .sort(sortOptions)
       .skip((query.page - 1) * query.limit)
       .limit(query.limit),
   ]);
@@ -107,6 +126,13 @@ export const listFdrReviewQueue = async ({ user, query }) => {
         score: record.trustScore.score,
         category: record.trustScore.category,
         evidenceCoverage: record.trustScore.evidenceCoverage,
+      } : null,
+      riskAssessment: record.riskAssessment ? {
+        score: record.riskAssessment.score ?? 0,
+        level: record.riskAssessment.level || 'low',
+        summary: record.riskAssessment.summary || null,
+        totalFindingsCount: record.riskAssessment.findings?.length ?? 0,
+        activeFindingsCount: record.riskAssessment.findings?.filter((f) => f.status === 'active')?.length ?? 0,
       } : null,
       bankVerificationStatus: record.bankVerification?.status || 'pending',
       duplicateStatus: record.duplicateCheck?.status || 'no_candidate_found',
@@ -140,7 +166,7 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
       .select('fdrNumber workflowStatus issueDate maturityDate createdAt')
       .sort({ createdAt: -1, _id: -1 }),
     fdr.replacesFdr
-      ? FDR.findById(fdr.replacesFdr).select('fdrNumber workflowStatus issueDate maturityDate')
+      ? FDR.findById(fdr.replacesFdr).select('fdrNumber workflowStatus issueDate maturityDate amount currency bankName branch interestRate depositorName ifscCode documentMetadata')
       : Promise.resolve(null),
     ReleaseRequest.find({ fdrId: fdr._id })
       .select('status reason createdAt updatedAt history')
@@ -182,6 +208,9 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
         currency: fdr.currency,
         issueDate: fdr.issueDate,
         maturityDate: fdr.maturityDate,
+        interestRate: fdr.interestRate ?? null,
+        depositorName: fdr.depositorName || null,
+        ifscCode: fdr.ifscCode || null,
       },
       document: {
         fileName: fdr.documentMetadata?.fileName || null,
@@ -218,6 +247,29 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
         missingData: fdr.trustScore.missingData || [],
         unavailableChecks: fdr.trustScore.unavailableChecks || [],
         history: fdr.trustScoreHistory || [],
+      } : null,
+      riskAssessment: fdr.riskAssessment ? {
+        score: fdr.riskAssessment.score ?? 0,
+        level: fdr.riskAssessment.level || 'low',
+        version: fdr.riskAssessment.version || '1.0.0',
+        calculatedAt: fdr.riskAssessment.calculatedAt || null,
+        summary: fdr.riskAssessment.summary || null,
+        recommendedAction: fdr.riskAssessment.recommendedAction || null,
+        totalFindingsCount: fdr.riskAssessment.findings?.length ?? 0,
+        activeFindingsCount: fdr.riskAssessment.findings?.filter((f) => f.status === 'active')?.length ?? 0,
+        findings: (fdr.riskAssessment.findings || []).map((f) => ({
+          id: String(f._id || f.id),
+          ruleId: f.id || null,
+          label: f.label,
+          points: f.points,
+          category: f.category,
+          evidence: f.evidence,
+          explanation: f.explanation,
+          status: f.status || 'active',
+          reviewedBy: f.reviewedBy ? String(f.reviewedBy) : null,
+          reviewedAt: f.reviewedAt || null,
+          reviewReason: f.reviewReason || null,
+        })),
       } : null,
       bankVerification: {
         status: fdr.bankVerification?.status || 'pending',
@@ -265,9 +317,22 @@ export const getFdrReviewDetails = async ({ user, fdrId }) => {
       replacementOf: original && {
         id: String(original._id),
         fdrNumber: original.fdrNumber,
-        workflowStatus: original.workflowStatus,
+        bankName: original.bankName,
+        branch: original.branch,
+        amount: original.amount,
+        currency: original.currency,
         issueDate: original.issueDate,
         maturityDate: original.maturityDate,
+        interestRate: original.interestRate ?? null,
+        depositorName: original.depositorName || null,
+        ifscCode: original.ifscCode || null,
+        workflowStatus: original.workflowStatus,
+        document: {
+          fileName: original.documentMetadata?.fileName || null,
+          mimeType: original.documentMetadata?.mimeType || null,
+          fileSize: original.documentMetadata?.fileSize ?? null,
+          downloadEndpoint: `/api/fdrs/${original._id}/document`,
+        },
       },
       releaseRequests: releaseRequests.map((request) => ({
         id: String(request._id),
@@ -520,6 +585,105 @@ export const recalculateFdrTrustScoreAction = async ({ user, fdrId }) => {
   return getFdrReviewDetails({ user, fdrId });
 };
 
+export const reviewRiskFindingAction = async ({ user, fdrId, findingId, status, reviewReason }) => {
+  requireOfficial(user);
+  const fdr = await FDR.findById(fdrId);
+  if (!fdr) throw new FdrWorkflowError(404, 'fdr_not_found', 'FDR not found.');
+
+  if (!fdr.riskAssessment) {
+    throw new FdrWorkflowError(404, 'no_risk_assessment', 'This FDR has no risk assessment.');
+  }
+
+  const validStatuses = ['dismissed', 'reviewed', 'active'];
+  if (!validStatuses.includes(status)) {
+    throw new FdrWorkflowError(400, 'invalid_status', 'Invalid finding review status.');
+  }
+
+  if (['dismissed', 'reviewed'].includes(status) && (!reviewReason || reviewReason.trim().length < 5)) {
+    throw new FdrWorkflowError(400, 'missing_reason', 'A justification of at least 5 characters is required.');
+  }
+
+  const finding = (fdr.riskAssessment.findings || []).find(
+    (f) => String(f._id || f.id) === String(findingId) || f.id === findingId
+  );
+  if (!finding) {
+    throw new FdrWorkflowError(404, 'finding_not_found', 'Risk finding not found.');
+  }
+
+  finding.status = status;
+  finding.reviewedBy = user._id;
+  finding.reviewedAt = new Date();
+  finding.reviewReason = reviewReason.trim();
+
+  // Recalculate active findings and score dynamically
+  const activeFindings = fdr.riskAssessment.findings.filter((f) => f.status === 'active');
+  const activeScore = Math.min(
+    100,
+    activeFindings.reduce((sum, f) => sum + (f.points || 0), 0)
+  );
+  fdr.riskAssessment.score = activeScore;
+  fdr.riskAssessment.level = mapRiskScoreToLevel(activeScore);
+  fdr.riskAssessment.calculatedAt = new Date();
+
+  await fdr.save();
+
+  await writeAudit({
+    actor: user._id,
+    action: 'fdr_risk_finding_reviewed',
+    entityId: fdr._id,
+    metadata: {
+      findingRuleCode: finding.id || findingId,
+      status,
+      reviewReason: reviewReason.trim(),
+      newRiskScore: activeScore,
+      newRiskLevel: fdr.riskAssessment.level,
+    },
+  }).save();
+
+  return getFdrReviewDetails({ user, fdrId });
+};
+
+export const recalculateRiskScoreAction = async ({ user, fdrId }) => {
+  requireOfficial(user);
+  const fdr = await FDR.findById(fdrId);
+  if (!fdr) throw new FdrWorkflowError(404, 'fdr_not_found', 'FDR not found.');
+
+  let previousFdr = null;
+  if (fdr.replacesFdr) {
+    previousFdr = await FDR.findById(fdr.replacesFdr);
+  }
+
+  let duplicateResult = fdr.duplicateCheck;
+  try {
+    duplicateResult = await detectFdrDuplicates({ fdrId, fdrRecord: fdr });
+    fdr.duplicateCheck = duplicateResult;
+  } catch {
+    // safe fallback
+  }
+
+  const riskResult = calculateFdrRiskScore({
+    fdr,
+    duplicateResult,
+    previousFdr,
+  });
+
+  fdr.riskAssessment = riskResult;
+  await fdr.save();
+
+  await writeAudit({
+    actor: user._id,
+    action: 'fdr_risk_recalculated',
+    entityId: fdr._id,
+    metadata: {
+      score: riskResult.score,
+      level: riskResult.level,
+      findingsCount: riskResult.findings?.length || 0,
+    },
+  }).save();
+
+  return getFdrReviewDetails({ user, fdrId });
+};
+
 const cleanupStoredFile = async (storageKey) => {
   try {
     await deleteStoredDocument(storageKey);
@@ -618,6 +782,13 @@ export const createFdrRenewal = async ({ user, fdrId, payload, file }) => {
           trigger: 'replacement_created',
         },
       ];
+
+      const riskAssessmentResult = calculateFdrRiskScore({
+        fdr: replacement,
+        previousFdr: original,
+        duplicateResult,
+      });
+      replacement.riskAssessment = riskAssessmentResult;
 
       await replacement.save({ session });
       await writeAudit({

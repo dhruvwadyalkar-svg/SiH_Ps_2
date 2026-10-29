@@ -244,6 +244,39 @@ const trustScoreSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const riskFindingSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+    points: { type: Number, required: true, default: 0 },
+    category: { type: String, required: true },
+    evidence: { type: String, required: true },
+    explanation: { type: String, required: true },
+    status: { type: String, enum: ['active', 'reviewed', 'dismissed'], default: 'active' },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewReason: { type: String, default: null },
+  },
+  { _id: true },
+);
+
+const riskAssessmentSchema = new mongoose.Schema(
+  {
+    score: { type: Number, min: 0, max: 100, default: 0 },
+    level: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'critical'],
+      default: 'low',
+    },
+    version: { type: String, default: '1.0.0' },
+    calculatedAt: { type: Date, default: null },
+    findings: { type: [riskFindingSchema], default: [] },
+    summary: { type: String, default: null },
+    recommendedAction: { type: String, default: null },
+  },
+  { _id: false },
+);
+
 const qrCodeMetadataSchema = new mongoose.Schema(
   {
     detected: { type: Boolean, default: false },
@@ -454,6 +487,23 @@ const fdrSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    interestRate: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: null,
+    },
+    depositorName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    ifscCode: {
+      type: String,
+      default: null,
+      trim: true,
+      uppercase: true,
+    },
     documentMetadata: {
       type: documentMetadataSchema,
       default: {},
@@ -515,6 +565,10 @@ const fdrSchema = new mongoose.Schema(
     trustScoreHistory: {
       type: [trustScoreHistorySchema],
       default: [],
+    },
+    riskAssessment: {
+      type: riskAssessmentSchema,
+      default: () => ({ score: 0, level: 'low' }),
     },
     bankVerification: {
       type: bankVerificationSchema,

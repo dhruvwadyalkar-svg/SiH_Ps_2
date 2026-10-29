@@ -16,6 +16,7 @@ import {
 } from '../utils/fdr-extraction.schema.js';
 import { getFdrById } from './fdr.service.js';
 import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import { calculateFdrRiskScore } from './fdr-risk-score.service.js';
 import { detectFdrDuplicates } from './duplicate-detection.service.js';
 import { inspectFdrDocumentForQr } from './bank-verification.service.js';
 
@@ -418,6 +419,21 @@ const persistCompletedResults = async ({ fdr, user, status, extractedData }) => 
     trigger: 'ocr_completed',
   });
 
+  let previousFdr = null;
+  if (fdr.replacesFdr && mongoose.connection.readyState === 1) {
+    try {
+      previousFdr = await FDR.findById(fdr.replacesFdr);
+    } catch {
+      // safe fallback
+    }
+  }
+
+  const riskAssessmentResult = calculateFdrRiskScore({
+    fdr,
+    duplicateResult,
+    previousFdr,
+  });
+
   const completedAt = new Date();
   await updateAndAudit({
     fdrId: fdr._id,
@@ -438,6 +454,7 @@ const persistCompletedResults = async ({ fdr, user, status, extractedData }) => 
         'duplicateCheck': duplicateResult,
         ...(qrCodeData ? { 'bankVerification.qrCode': qrCodeData } : {}),
         'trustScore': trustScoreResult,
+        'riskAssessment': riskAssessmentResult,
       },
       $push: {
         trustScoreHistory: {

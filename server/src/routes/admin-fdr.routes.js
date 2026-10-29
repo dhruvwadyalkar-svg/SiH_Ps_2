@@ -15,6 +15,8 @@ import {
   recalculateTrustScoreController,
   recordBankVerificationController,
   recordDuplicateReviewController,
+  reviewRiskFindingController,
+  recalculateRiskScoreController,
 } from '../controllers/fdr-workflow.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
@@ -34,6 +36,8 @@ router.post('/fdrs/:id/review', decideFdrReviewController);
 router.post('/fdrs/:id/bank-verification', recordBankVerificationController);
 router.post('/fdrs/:id/duplicate-review', recordDuplicateReviewController);
 router.post('/fdrs/:id/trust-score/recalculate', recalculateTrustScoreController);
+router.post('/fdrs/:id/risk-findings/:findingId/review', reviewRiskFindingController);
+router.post('/fdrs/:id/risk-score/recalculate', recalculateRiskScoreController);
 router.get('/release-requests', listReleaseRequestsController);
 router.get('/release-requests/:requestId', getReleaseRequestController);
 router.post('/release-requests/:requestId/decision', decideReleaseRequestController);

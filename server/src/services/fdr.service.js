@@ -8,6 +8,7 @@ import {
   storeUploadedDocument,
 } from './document-storage.service.js';
 import { calculateFdrTrustScore } from './fdr-trust-score.service.js';
+import { calculateFdrRiskScore } from './fdr-risk-score.service.js';
 import {
   detectFdrDuplicates,
   sanitizeDuplicateCheckForUser,
@@ -66,6 +67,9 @@ export const serializeFdr = (fdr) => ({
   currency: fdr.currency,
   issueDate: fdr.issueDate,
   maturityDate: fdr.maturityDate,
+  interestRate: fdr.interestRate ?? null,
+  depositorName: fdr.depositorName || null,
+  ifscCode: fdr.ifscCode || null,
   workflowStatus: fdr.workflowStatus,
   financialStatus: fdr.financialStatus,
   documentMetadata: sanitizeDocumentMetadata(fdr.documentMetadata),
@@ -81,6 +85,29 @@ export const serializeFdr = (fdr) => ({
     riskFindings: fdr.trustScore.riskFindings || [],
     missingData: fdr.trustScore.missingData || [],
     unavailableChecks: fdr.trustScore.unavailableChecks || [],
+  } : null,
+  riskAssessment: fdr.riskAssessment ? {
+    score: fdr.riskAssessment.score ?? 0,
+    level: fdr.riskAssessment.level || 'low',
+    summary: fdr.riskAssessment.summary || null,
+    recommendedAction: fdr.riskAssessment.recommendedAction || null,
+    version: fdr.riskAssessment.version || '1.0.0',
+    calculatedAt: fdr.riskAssessment.calculatedAt || null,
+    findings: Array.isArray(fdr.riskAssessment.findings)
+      ? fdr.riskAssessment.findings.map((f) => ({
+          id: String(f._id || f.id),
+          ruleId: f.id || null,
+          label: f.label,
+          points: f.points,
+          category: f.category,
+          evidence: f.evidence,
+          explanation: f.explanation,
+          status: f.status || 'active',
+          reviewedBy: f.reviewedBy ? String(f.reviewedBy) : null,
+          reviewedAt: f.reviewedAt || null,
+          reviewReason: f.reviewReason || null,
+        }))
+      : [],
   } : null,
   bankVerification: fdr.bankVerification ? {
     status: fdr.bankVerification.status || 'pending',
@@ -203,6 +230,14 @@ export const createFdrRecord = async ({ user, payload, file }) => {
           trigger: 'initial_creation',
         },
       ];
+
+      // Initial Risk Score assessment
+      const riskAssessmentResult = calculateFdrRiskScore({
+        fdr: record,
+        duplicateResult,
+        previousFdr: null,
+      });
+      record.riskAssessment = riskAssessmentResult;
 
       await record.save({ session });
       await writeAuditEvent({
@@ -336,7 +371,7 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
         throw new FdrServiceError(409, 'Corrected FDR records must be resubmitted for review.');
       }
 
-      for (const field of ['fdrNumber', 'bankName', 'branch', 'amount', 'currency', 'issueDate', 'maturityDate']) {
+      for (const field of ['fdrNumber', 'bankName', 'branch', 'amount', 'currency', 'issueDate', 'maturityDate', 'interestRate', 'depositorName', 'ifscCode']) {
         if (field in updates) {
           record[field] = updates[field];
         }
@@ -400,6 +435,22 @@ export const updateFdrRecord = async ({ user, fdrId, updates }) => {
         summary: trustScoreResult.summary,
         trigger: 'fdr_updated',
       });
+
+      let previousFdr = null;
+      if (record.replacesFdr && mongoose.connection.readyState === 1) {
+        try {
+          previousFdr = await FDR.findById(record.replacesFdr).session(session);
+        } catch {
+          // safe fallback
+        }
+      }
+
+      const riskAssessmentResult = calculateFdrRiskScore({
+        fdr: record,
+        previousFdr,
+        duplicateResult,
+      });
+      record.riskAssessment = riskAssessmentResult;
 
       await record.save({ session });
       await writeAuditEvent({

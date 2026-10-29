@@ -5,6 +5,7 @@ import {
   releaseRequestSchema,
   reviewDecisionSchema,
   reviewQueueQuerySchema,
+  riskFindingReviewSchema,
 } from '../utils/fdr-workflow.validation.js';
 import {
   createFdrRenewal,
@@ -19,6 +20,8 @@ import {
   recalculateFdrTrustScoreAction,
   recordBankVerificationOutcome,
   recordDuplicateReviewOutcome,
+  reviewRiskFindingAction,
+  recalculateRiskScoreAction,
 } from '../services/fdr-workflow.service.js';
 import { FdrServiceError } from '../services/fdr.service.js';
 
@@ -117,6 +120,41 @@ export const recalculateTrustScoreController = async (request, response, next) =
   if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
   try {
     const details = await recalculateFdrTrustScoreAction({
+      user: request.user,
+      fdrId: parsedId.data,
+    });
+    return response.status(200).json(details);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
+export const reviewRiskFindingController = async (request, response, next) => {
+  const parsedId = fdrIdSchema.safeParse(request.params.id);
+  if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
+  const parsedBody = riskFindingReviewSchema.safeParse(request.body);
+  if (!parsedBody.success) return validationError(response, parsedBody.error);
+  try {
+    const details = await reviewRiskFindingAction({
+      user: request.user,
+      fdrId: parsedId.data,
+      findingId: request.params.findingId,
+      status: parsedBody.data.status,
+      reviewReason: parsedBody.data.reviewReason,
+    });
+    return response.status(200).json(details);
+  } catch (error) {
+    if (handleError(response, error)) return;
+    return next(error);
+  }
+};
+
+export const recalculateRiskScoreController = async (request, response, next) => {
+  const parsedId = fdrIdSchema.safeParse(request.params.id);
+  if (!parsedId.success) return response.status(400).json({ error: 'Invalid FDR ID.' });
+  try {
+    const details = await recalculateRiskScoreAction({
       user: request.user,
       fdrId: parsedId.data,
     });

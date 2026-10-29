@@ -21,6 +21,16 @@ export const reviewQueueQuerySchema = z
       'released',
     ]).optional(),
     search: z.string().trim().min(1).max(100).optional(),
+    riskLevel: z.enum(['low', 'medium', 'high', 'critical', 'Low', 'Medium', 'High', 'Critical']).optional(),
+    bank: z.string().trim().min(1).max(100).optional(),
+    sortBy: z.enum(['risk_desc', 'risk_asc', 'urgency', 'date_desc', 'date_asc']).optional(),
+  })
+  .strict();
+
+export const riskFindingReviewSchema = z
+  .object({
+    status: z.enum(['dismissed', 'reviewed', 'active']),
+    reviewReason: z.string().trim().min(5).max(2000),
   })
   .strict();
 

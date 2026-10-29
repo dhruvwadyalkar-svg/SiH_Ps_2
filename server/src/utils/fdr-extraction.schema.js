@@ -35,6 +35,18 @@ export const fdrExtractionSchema = {
       type: 'string',
       description: 'Institution or depositor name explicitly printed on the receipt. Do not infer it from the document owner.',
     },
+    interest_rate: {
+      type: 'number',
+      description: 'Annual interest rate percentage printed on the receipt (e.g. 7.25), if present.',
+    },
+    depositor_name: {
+      type: 'string',
+      description: 'Name of the depositor, trustee, or beneficiary explicitly printed on the receipt, if present.',
+    },
+    ifsc_code: {
+      type: 'string',
+      description: 'Bank branch 11-character IFSC code printed on the receipt, if present.',
+    },
   },
 };
 
@@ -71,6 +83,9 @@ const extractedFieldsSchema = z.object({
   issue_date: isoDate,
   maturity_date: isoDate,
   institution_name: nullableText,
+  interest_rate: extractedAmount,
+  depositor_name: nullableText,
+  ifsc_code: nullableText,
 });
 
 export const parseExtractedFdrFields = (value) => {
@@ -144,5 +159,20 @@ export const compareFdrFields = ({ submitted, extracted, institutionName }) => (
   },
   institution_name: {
     status: compareValue(institutionName, extracted.institution_name, normalizedText),
+  },
+  interest_rate: {
+    status: compareValue(submitted.interestRate, extracted.interest_rate, (value) =>
+      value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
+        ? Number(value)
+        : null,
+    ),
+  },
+  depositor_name: {
+    status: compareValue(submitted.depositorName || institutionName, extracted.depositor_name, normalizedText),
+  },
+  ifsc_code: {
+    status: compareValue(submitted.ifscCode, extracted.ifsc_code, (value) =>
+      textValue(value)?.trim().replace(/\s+/g, '').toLocaleUpperCase('en-IN') || null,
+    ),
   },
 });
