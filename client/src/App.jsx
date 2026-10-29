@@ -3499,6 +3499,16 @@ function FdrDetailPage() {
       {/* Intelligent Verification Status Banner */}
       <VerificationStatusBanner statusInfo={verificationStatus} />
 
+      {/* Explainable Risk Assessment & Verification Intelligence */}
+      {fdr.riskAssessment && (
+        <ExplainableRiskAssessmentCard
+          riskAssessment={fdr.riskAssessment}
+          fdrId={id}
+          onRefresh={load}
+          canReview={false}
+        />
+      )}
+
       {/* Trust Score Banner */}
       {trustScore && (
         <Card style={{ borderLeft: '4px solid #002147' }}>
@@ -3845,6 +3855,16 @@ function ReviewDetailPage() {
       <VerificationStatusBanner statusInfo={verificationStatus} />
 
       {/* Explainable Risk Assessment & Verification Intelligence */}
+      {fdr.riskAssessment && (
+        <ExplainableRiskAssessmentCard
+          riskAssessment={fdr.riskAssessment}
+          fdrId={id}
+          onRefresh={load}
+          canReview={false}
+        />
+      )}
+
+      {/* Explainable Risk Assessment & Verification Intelligence */}
       {riskAssessment && (
         <ExplainableRiskAssessmentCard
           riskAssessment={riskAssessment}
@@ -4143,6 +4163,9 @@ function ReviewQueuePage() {
   const { request } = useAuth();
   const [data, setData] = useState(null);
   const [search, setSearch] = useState('');
+  const [riskLevel, setRiskLevel] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [workflowStatus, setWorkflowStatus] = useState('');
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -4151,6 +4174,9 @@ function ReviewQueuePage() {
     setBusy(true); setError('');
     const params = new URLSearchParams({ page: String(page), limit: '20' });
     if (search.trim()) params.set('search', search.trim());
+    if (riskLevel) params.set('riskLevel', riskLevel);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (workflowStatus) params.set('workflowStatus', workflowStatus);
     try {
       setData(await request(`/admin/fdrs/review-queue?${params}`));
     } catch (requestError) {
@@ -4158,7 +4184,7 @@ function ReviewQueuePage() {
     } finally {
       setBusy(false);
     }
-  }, [request, search, page]);
+  }, [request, search, riskLevel, sortBy, workflowStatus, page]);
 
   useEffect(() => { load(); }, [load]);
   const records = data?.records || [];
@@ -4167,15 +4193,54 @@ function ReviewQueuePage() {
     <PageHeader
       eyebrow="ADMINISTRATIVE WORKBENCH"
       title="FDR review queue"
-      subtitle="Inspect submitted deposit instruments, compare OCR signals, and record review decisions."
+      subtitle="Inspect submitted deposit instruments, evaluate explainable risk scores, and record review decisions."
     >
-      <div className="filters-row">
-        <SearchInput
-          value={search}
-          onChange={(value) => { setSearch(value); setPage(1); }}
-          onSearch={load}
-          placeholder="Search FDR number or bank"
-        />
+      <div className="filters-row" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <SearchInput
+            value={search}
+            onChange={(value) => { setSearch(value); setPage(1); }}
+            onSearch={load}
+            placeholder="Search FDR number, bank or institution"
+          />
+        </div>
+        <select
+          className="select-control"
+          value={riskLevel}
+          onChange={(e) => { setRiskLevel(e.target.value); setPage(1); }}
+          style={{ width: 'auto', minWidth: 160 }}
+        >
+          <option value="">All Risk Levels</option>
+          <option value="critical">Critical Risk (75–100)</option>
+          <option value="high">High Risk (50–74)</option>
+          <option value="medium">Medium Risk (25–49)</option>
+          <option value="low">Low Risk (0–24)</option>
+        </select>
+        <select
+          className="select-control"
+          value={sortBy}
+          onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+          style={{ width: 'auto', minWidth: 170 }}
+        >
+          <option value="">Sort: Newest First</option>
+          <option value="risk_desc">Highest Risk First</option>
+          <option value="risk_asc">Lowest Risk First</option>
+          <option value="urgency">Review Urgency</option>
+          <option value="date_asc">Oldest First</option>
+        </select>
+        <select
+          className="select-control"
+          value={workflowStatus}
+          onChange={(e) => { setWorkflowStatus(e.target.value); setPage(1); }}
+          style={{ width: 'auto', minWidth: 160 }}
+        >
+          <option value="">All Statuses</option>
+          <option value="submitted">Submitted</option>
+          <option value="under_review">Under Review</option>
+          <option value="correction_requested">Correction Requested</option>
+          <option value="review_completed">Review Completed</option>
+          <option value="approved">Approved</option>
+        </select>
       </div>
 
       {error && <Notice tone="danger">{error}</Notice>}
@@ -4191,6 +4256,7 @@ function ReviewQueuePage() {
                   <th>Institution</th>
                   <th>Bank / branch</th>
                   <th>Amount</th>
+                  <th>Risk Assessment</th>
                   <th>Submitted</th>
                   <th>Workflow</th>
                   <th>Review</th>
@@ -4208,6 +4274,19 @@ function ReviewQueuePage() {
                     </td>
                     <td>{record.bankName}</td>
                     <td className="tabular-nums" style={{ fontWeight: 600 }}>{formatMoney(record.amount, record.currency)}</td>
+                    <td>
+                      {record.riskAssessment ? (
+                        <span
+                          className={`risk-badge-${(record.riskAssessment.level || 'low').toLowerCase()}`}
+                          style={{ padding: '3px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <ShieldAlert size={12} />
+                          {record.riskAssessment.score} pts · {(record.riskAssessment.level || 'low').toUpperCase()}
+                        </span>
+                      ) : (
+                        <Badge variant="outline">Unassessed</Badge>
+                      )}
+                    </td>
                     <td className="tabular-nums">{formatDate(record.submittedAt || record.createdAt)}</td>
                     <td><StatusPill value={record.workflowStatus} /></td>
                     <td>
@@ -4225,7 +4304,7 @@ function ReviewQueuePage() {
           </CardFooter>
         </Card>
       ) : (
-        <EmptyState title="No submissions in review queue" detail="All current submissions have been processed." />
+        <EmptyState title="No submissions in review queue" detail="All current submissions have been processed or none match the selected filters." />
       )}
     </PageHeader>
   );
