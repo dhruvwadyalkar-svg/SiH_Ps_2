@@ -245,6 +245,41 @@ describe('Phase 10 frontend API integration', () => {
     expect(screen.getByRole('link', { name: /Integrity monitor/i })).toBeTruthy();
     expect(screen.getByText(/Continuous byte-level verification of stored security deposit receipts/i)).toBeTruthy();
   });
+
+  it('renders the Smart Bank Confirmation Tracker section with 4 KPI metrics and navigation', async () => {
+    apiHandler = async (url) => {
+      if (url.pathname.endsWith('/auth/login')) return { body: loginResponse(institutionUser) };
+      if (url.pathname.endsWith('/notifications/unread-count')) return { body: { unreadCount: 0 } };
+      if (url.pathname.endsWith('/dashboard/summary')) {
+        return {
+          body: {
+            ...dashboardSummary,
+            bankConfirmationSummary: {
+              pending: 3,
+              confirmed: 5,
+              discrepancy: 1,
+              overdue: 2,
+              total: 11,
+            },
+          },
+        };
+      }
+      return { status: 404, body: { error: 'Not found.' } };
+    };
+
+    renderApp();
+    await signIn(institutionUser);
+
+    expect(await screen.findByRole('heading', { name: /Smart Bank Confirmation Tracker/i })).toBeTruthy();
+    expect(screen.getByText('Pending Confirmations')).toBeTruthy();
+    expect(screen.getByText('Confirmed FDRs')).toBeTruthy();
+    expect(screen.getByText('Discrepancies Flagged')).toBeTruthy();
+    expect(screen.getByText('Overdue Requests')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Open Confirmation Tracker/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Bank tracker/i })).toBeTruthy();
+    expect(screen.getByText(/Dual-Track Branch Verification/i)).toBeTruthy();
+    expect(screen.getByText(/Audit-ready tracking of written FDR verification requests/i)).toBeTruthy();
+  });
 });
 
 describe('PART 2 — Header and Navigation Redesign', () => {

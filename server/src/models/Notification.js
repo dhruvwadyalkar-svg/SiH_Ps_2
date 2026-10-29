@@ -3,15 +3,26 @@ import mongoose from 'mongoose';
 const notificationTypes = [
   'maturity_reminder',
   'overdue_maturity',
+  'document_integrity_alert',
+  'bank_confirmation_request',
+  'bank_confirmation_submitted',
+  'bank_confirmation_deadline_warning',
+  'bank_confirmation_overdue',
+  'bank_confirmation_response_received',
+  'bank_confirmation_discrepancy',
 ];
 
 const notificationMetadataSchema = new mongoose.Schema(
   {
     fdrNumber: { type: String, trim: true, maxlength: 100 },
     maturityDate: { type: String, trim: true, maxlength: 10 },
-    reminderStage: { type: String, trim: true, maxlength: 10 },
+    reminderStage: { type: String, trim: true, maxlength: 50 },
+    confirmationReference: { type: String, trim: true, maxlength: 100 },
+    bankName: { type: String, trim: true, maxlength: 150 },
+    daysOverdue: { type: Number },
+    deadline: { type: Date },
   },
-  { _id: false },
+  { _id: false, strict: false },
 );
 
 const notificationSchema = new mongoose.Schema(

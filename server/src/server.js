@@ -2,6 +2,7 @@ import app from './app.js';
 import connectDB from './config/db.js';
 import { getMaturityReminderConfig, startMaturityReminderScheduler } from './jobs/maturity-reminder.job.js';
 import { getIntegrityMonitorConfig, startIntegrityMonitorScheduler } from './jobs/integrity-monitor.job.js';
+import { startConfirmationDeadlineScheduler } from './jobs/bank-confirmation-deadline.job.js';
 
 const port = Number(process.env.PORT) || 3000;
 
@@ -19,6 +20,8 @@ const startServer = async () => {
       if (integrityConfig.enabled) {
         startIntegrityMonitorScheduler({ config: integrityConfig });
       }
+
+      startConfirmationDeadlineScheduler();
     } catch (dbError) {
       console.error('MongoDB connection notice:', dbError.message);
       console.warn('Backend is running in offline mode. If using MongoDB Atlas, whitelist your IP address in Atlas Network Access.');

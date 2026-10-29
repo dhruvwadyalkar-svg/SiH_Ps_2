@@ -4991,7 +4991,6 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
 }
 
 @media (max-width: 1100px) {
@@ -5136,7 +5135,6 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: 1.7fr 1fr;
   gap: 20px;
-  margin-bottom: 24px;
 }
 
 @media (max-width: 1024px) {
@@ -6139,39 +6137,59 @@ textarea:focus-visible {
 }
 
 /* =========================================================================
-   FEATURE: LIVE FDR INTEGRITY MONITOR STYLES
+   FEATURE: LIVE FDR INTEGRITY MONITOR & DUAL INTELLIGENCE TWIN DECK
    ========================================================================= */
+
+/* Dual Verification & Integrity Intelligence Twin Deck */
+.dashboard-twin-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 1120px) {
+  .dashboard-twin-deck-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
 
 .dashboard-integrity-section {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
+  padding: 18px 20px;
+  margin-bottom: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   box-shadow: 0 2px 8px rgba(0, 33, 71, 0.04);
+  box-sizing: border-box;
 }
 
 .integrity-monitor-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  padding-bottom: 18px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #f1f5f9;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .integrity-title-badge-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .integrity-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   display: flex;
@@ -6181,8 +6199,8 @@ textarea:focus-visible {
 }
 
 .integrity-monitor-title {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 750;
   color: #002147;
   margin: 0;
   letter-spacing: -0.01em;
@@ -6195,7 +6213,7 @@ textarea:focus-visible {
   background: #ecfdf5;
   color: #065f46;
   border: 1px solid #a7f3d0;
-  padding: 3px 10px;
+  padding: 2.5px 9px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
@@ -6211,19 +6229,31 @@ textarea:focus-visible {
   animation: pulse-green 2s infinite;
 }
 
+.live-pulse-dot.dot-blue {
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  animation: pulse-blue 2s infinite;
+}
+
 @keyframes pulse-green {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
+@keyframes pulse-blue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
 .integrity-monitor-desc {
   margin: 4px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: #64748b;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -6236,19 +6266,19 @@ textarea:focus-visible {
 .integrity-monitor-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn-integrity-scan {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 12px;
   background: #002147;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  font-size: 12.5px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -6284,7 +6314,19 @@ textarea:focus-visible {
   border-color: #94a3b8;
 }
 
-/* 3 Metrics Grid */
+/* 2-Row Integrity Deck inside Twin Deck */
+.integrity-metrics-deck {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  flex: 1;
+}
+
+.integrity-metric-card.card-span-2 {
+  grid-column: span 2;
+}
+
+/* 3 Metrics Grid (for standalone page) */
 .integrity-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -6298,14 +6340,19 @@ textarea:focus-visible {
 }
 
 .integrity-metric-card {
-  border-radius: 10px;
-  padding: 16px 18px;
+  border-radius: 8px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.integrity-metrics-grid .integrity-metric-card {
+  padding: 16px 18px;
+  border-radius: 10px;
 }
 
 .integrity-metric-card:hover {
@@ -6352,20 +6399,29 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 6px;
+}
+
+.integrity-metrics-grid .integrity-card-top {
   margin-bottom: 10px;
 }
 
 .integrity-card-label {
-  font-size: 13px;
-  font-weight: 750;
+  font-size: 12px;
+  font-weight: 700;
   color: #1e293b;
 }
 
-.integrity-badge {
-  font-size: 10.5px;
+.integrity-metrics-grid .integrity-card-label {
+  font-size: 13px;
   font-weight: 750;
-  padding: 2.5px 8px;
-  border-radius: 6px;
+}
+
+.integrity-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
   letter-spacing: 0.02em;
 }
 
@@ -6378,21 +6434,30 @@ textarea:focus-visible {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .integrity-num {
-  font-size: 32px;
-  font-weight: 850;
+  font-size: 24px;
+  font-weight: 800;
   color: #002147;
   font-feature-settings: 'tnum';
   line-height: 1;
 }
 
+.integrity-metrics-grid .integrity-num {
+  font-size: 32px;
+  font-weight: 850;
+}
+
 .integrity-card-meta {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #64748b;
   line-height: 1.35;
+}
+
+.integrity-metrics-grid .integrity-card-meta {
+  font-size: 11.5px;
 }
 
 /* Detailed Integrity Monitor Page */
@@ -6563,4 +6628,488 @@ textarea:focus-visible {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* =========================================================================
+   FEATURE 3: SMART BANK CONFIRMATION TRACKER STYLES
+   ========================================================================= */
+
+.dashboard-confirmation-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 33, 71, 0.04);
+  box-sizing: border-box;
+}
+
+.confirmation-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.confirmation-title-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confirmation-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirmation-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #002147;
+  letter-spacing: -0.01em;
+}
+
+.confirmation-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.confirmation-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  flex: 1;
+}
+
+@media (max-width: 540px) {
+  .confirmation-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.confirmation-metric-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: inherit;
+}
+
+.confirmation-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.confirmation-metric-card.card-pending:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.confirmation-metric-card.card-confirmed:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.confirmation-metric-card.card-discrepancy:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.confirmation-metric-card.card-overdue:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.conf-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.conf-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.conf-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.conf-badge-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.conf-badge-green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.conf-badge-amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.conf-badge-red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.conf-card-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.conf-card-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #002147;
+  line-height: 1.1;
+  font-feature-settings: 'tnum';
+}
+
+.conf-card-sub {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.btn-open-tracker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  border-radius: 6px;
+  background: #002147;
+  color: #ffffff;
+  border: 1px solid #002147;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-open-tracker:hover {
+  background: #003366;
+  color: #ffffff;
+}
+
+/* Twin Deck Shared Footers */
+.twin-deck-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  margin-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 11px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.twin-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.twin-footer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.twin-footer-dot.dot-green {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.twin-footer-dot.dot-blue {
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.twin-footer-right {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* TRACKER PAGE STYLES */
+.tracker-page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.tracker-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .tracker-kpi-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .tracker-kpi-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tracker-filter-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tracker-status-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tracker-status-pill-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tracker-status-pill-btn.active {
+  background: #002147;
+  color: #ffffff;
+  border-color: #002147;
+}
+
+.tracker-status-pill-btn:hover:not(.active) {
+  background: #e2e8f0;
+}
+
+.tracker-inputs-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tracker-search-box {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.tracker-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  width: 100%;
+}
+
+.tracker-select {
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  outline: none;
+}
+
+.tracker-table-wrap {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.tracker-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.tracker-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.tracker-table tr:hover td {
+  background: #f8fafc;
+}
+
+.conf-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.conf-status-tag.status-draft {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.conf-status-tag.status-pending_submission {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.conf-status-tag.status-submitted_to_bank {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.conf-status-tag.status-awaiting_bank_response {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.conf-status-tag.status-confirmed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.conf-status-tag.status-discrepancy_found {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.conf-status-tag.status-unable_to_verify {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.conf-status-tag.status-closed {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.overdue-indicator-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.timeline-step-item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+  position: relative;
+}
+
+.timeline-step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 22px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timeline-step-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #002147;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.discrepancy-alert-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 10px;
 }

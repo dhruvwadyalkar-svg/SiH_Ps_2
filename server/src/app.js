@@ -9,6 +9,7 @@ import healthRoutes from './routes/health.routes.js';
 import institutionRoutes, { adminInstitutionRouter } from './routes/institution.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import bankConfirmationRoutes from './routes/bank-confirmation.routes.js';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/institutions', institutionRoutes);
 app.use('/api/fdrs', fdrRoutes);
+app.use('/api/bank-confirmations', bankConfirmationRoutes);
 app.use('/api/admin', adminFdrRoutes);
 app.use('/api/admin/institutions', adminInstitutionRouter);
 

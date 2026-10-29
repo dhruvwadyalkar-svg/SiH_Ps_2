@@ -92,7 +92,7 @@ const auditLogSchema = new mongoose.Schema(
     entityType: {
       type: String,
       required: true,
-      enum: ['Institution', 'User', 'FDR', 'Document', 'AuditLog', 'ReleaseRequest'],
+      enum: ['Institution', 'User', 'FDR', 'Document', 'AuditLog', 'ReleaseRequest', 'BankConfirmationRequest'],
       default: 'FDR',
       trim: true,
     },

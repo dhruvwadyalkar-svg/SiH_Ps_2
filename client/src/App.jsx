@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -58,10 +58,12 @@ import {
   Maximize2,
   Menu,
   Phone,
+  Plus,
   QrCode,
   RefreshCw,
   Scale,
   Search,
+  Send,
   Shield,
   ShieldAlert,
   ShieldCheck,
@@ -121,6 +123,13 @@ export const DEMO_INSTITUTION_SUMMARY = {
     notCheckedOrUnavailable: 1,
     lastCheckedAt: '2026-10-29T14:40:00.000Z',
   },
+  bankConfirmationSummary: {
+    pending: 1,
+    confirmed: 2,
+    discrepancy: 0,
+    overdue: 0,
+    total: 3,
+  },
 };
 
 export const DEMO_OFFICIAL_SUMMARY = {
@@ -143,6 +152,13 @@ export const DEMO_OFFICIAL_SUMMARY = {
     notChecked: 10,
     notCheckedOrUnavailable: 13,
     lastCheckedAt: '2026-10-29T16:20:00.000Z',
+  },
+  bankConfirmationSummary: {
+    pending: 14,
+    confirmed: 118,
+    discrepancy: 3,
+    overdue: 2,
+    total: 137,
   },
 };
 
@@ -226,6 +242,244 @@ export const DEMO_INTEGRITY_RECORDS = [
     activeAlertsCount: 0,
     historyCount: 0,
     lastResult: 'Awaiting initial baseline integrity scan.',
+  },
+];
+
+export const DEMO_BANK_CONFIRMATIONS = [
+  {
+    _id: 'bcr-001',
+    fdr: 'fdr-1',
+    fdrNumber: 'SBIN-2026-FDR-98124',
+    institution: 'inst-1',
+    institutionName: 'Delhi Institute of Engineering & Technology',
+    bankName: 'State Bank of India',
+    branch: 'Parliament Street, New Delhi',
+    requestReference: 'BCR-2026-98124A',
+    status: 'awaiting_bank_response',
+    initiatedByName: 'Prof. Rajesh Sharma',
+    assignedOfficialName: 'Dr. Sunita Deshmukh',
+    requestDate: '2026-10-18T10:00:00.000Z',
+    submissionDetails: {
+      submissionDate: '2026-10-20T11:30:00.000Z',
+      submissionMethod: 'registered_post_courier',
+      dispatchReference: 'SP-DEL-89412-IN',
+      recipientBranchContact: 'branchmgr.00691@sbi.co.in',
+      notes: 'Dispatched official verification request via India Post Speed Post with FDR copy.',
+    },
+    deadlineDetails: {
+      deadlineDays: 15,
+      responseDeadline: '2026-11-04T11:30:00.000Z',
+      escalationLevel: 'normal',
+    },
+    isOverdue: false,
+    daysRemaining: 6,
+    daysOverdue: 0,
+    evidenceDocuments: [
+      {
+        _id: 'doc-001',
+        fileName: 'AICTE_Inquiry_Letter_SBIN98124.pdf',
+        fileSize: 45200,
+        mimeType: 'application/pdf',
+        documentType: 'inquiry_letter',
+        uploadedAt: '2026-10-20T11:30:00.000Z',
+      },
+    ],
+    history: [
+      {
+        _id: 'h-001',
+        toStatus: 'pending_submission',
+        updatedByName: 'Prof. Rajesh Sharma',
+        updatedAt: '2026-10-18T10:00:00.000Z',
+        reason: 'Bank confirmation request drafted.',
+      },
+      {
+        _id: 'h-002',
+        fromStatus: 'pending_submission',
+        toStatus: 'submitted_to_bank',
+        updatedByName: 'Dr. Sunita Deshmukh',
+        updatedAt: '2026-10-20T11:30:00.000Z',
+        reason: 'Dispatched via registered post Speed Post SP-DEL-89412-IN.',
+      },
+    ],
+  },
+  {
+    _id: 'bcr-002',
+    fdr: 'fdr-2',
+    fdrNumber: 'PUNB-2026-FDR-44219',
+    institution: 'inst-1',
+    institutionName: 'Delhi Institute of Engineering & Technology',
+    bankName: 'Punjab National Bank',
+    branch: 'Connaught Place, New Delhi',
+    requestReference: 'BCR-2026-44219B',
+    status: 'confirmed',
+    initiatedByName: 'Prof. Rajesh Sharma',
+    assignedOfficialName: 'Dr. Sunita Deshmukh',
+    requestDate: '2026-10-10T09:00:00.000Z',
+    submissionDetails: {
+      submissionDate: '2026-10-11T14:00:00.000Z',
+      submissionMethod: 'official_email',
+      dispatchReference: 'MAIL-AICTE-PNB-2026-109',
+      recipientBranchContact: 'bo0123@pnb.co.in',
+    },
+    deadlineDetails: {
+      deadlineDays: 15,
+      responseDeadline: '2026-10-26T14:00:00.000Z',
+      escalationLevel: 'normal',
+    },
+    bankResponse: {
+      responseDate: '2026-10-24T16:00:00.000Z',
+      responseReference: 'PNB/CP/VERIF/2026/410',
+      responderName: 'A. K. Bansal',
+      responderDesignation: 'Chief Manager',
+      outcome: 'confirmed',
+      discrepancies: {
+        amountMismatch: false,
+        datesMismatch: false,
+        lienNotMarked: false,
+      },
+      generalNotes: 'Genuine fixed deposit receipt confirmed. Statutory lien marked in favor of AICTE.',
+    },
+    isOverdue: false,
+    daysRemaining: 0,
+    daysOverdue: 0,
+    evidenceDocuments: [
+      {
+        _id: 'doc-002',
+        fileName: 'PNB_Branch_Confirmation_Letter.pdf',
+        fileSize: 84120,
+        mimeType: 'application/pdf',
+        documentType: 'bank_letter',
+        uploadedAt: '2026-10-24T16:00:00.000Z',
+      },
+    ],
+    history: [
+      {
+        _id: 'h-010',
+        toStatus: 'pending_submission',
+        updatedByName: 'Prof. Rajesh Sharma',
+        updatedAt: '2026-10-10T09:00:00.000Z',
+        reason: 'Initiated request.',
+      },
+      {
+        _id: 'h-011',
+        toStatus: 'submitted_to_bank',
+        updatedByName: 'Dr. Sunita Deshmukh',
+        updatedAt: '2026-10-11T14:00:00.000Z',
+        reason: 'Emailed official inquiry.',
+      },
+      {
+        _id: 'h-012',
+        toStatus: 'confirmed',
+        updatedByName: 'Dr. Sunita Deshmukh',
+        updatedAt: '2026-10-24T16:00:00.000Z',
+        reason: 'Confirmation letter received and verified.',
+      },
+    ],
+  },
+  {
+    _id: 'bcr-003',
+    fdr: 'fdr-3',
+    fdrNumber: 'BARB-2026-FDR-11983',
+    institution: 'inst-2',
+    institutionName: 'Mumbai National College of Technology',
+    bankName: 'Bank of Baroda',
+    branch: 'Bandra Kurla Complex, Mumbai',
+    requestReference: 'BCR-2026-11983C',
+    status: 'discrepancy_found',
+    initiatedByName: 'Admin Officer',
+    assignedOfficialName: 'Reviewer Vikram',
+    requestDate: '2026-10-05T11:00:00.000Z',
+    submissionDetails: {
+      submissionDate: '2026-10-06T10:00:00.000Z',
+      submissionMethod: 'registered_post_courier',
+      dispatchReference: 'SP-MUM-77123-IN',
+      recipientBranchContact: 'bkc@bankofbaroda.co.in',
+    },
+    deadlineDetails: {
+      deadlineDays: 15,
+      responseDeadline: '2026-10-21T10:00:00.000Z',
+      escalationLevel: 'normal',
+    },
+    bankResponse: {
+      responseDate: '2026-10-19T15:30:00.000Z',
+      responseReference: 'BOB/BKC/DISC/88',
+      responderName: 'S. N. Sengupta',
+      responderDesignation: 'Senior Manager',
+      outcome: 'discrepancy_found',
+      discrepancies: {
+        amountMismatch: true,
+        lienNotMarked: true,
+        notes: 'Deposit principal in CBS shows ₹50,00,000/- while portal submission stated ₹1,00,00,000/-. Lien not noted.',
+      },
+      generalNotes: 'Discrepancy noted in deposit quantum.',
+    },
+    isOverdue: false,
+    daysRemaining: 0,
+    daysOverdue: 0,
+    evidenceDocuments: [
+      {
+        _id: 'doc-003',
+        fileName: 'BOB_Discrepancy_Notice.pdf',
+        fileSize: 62400,
+        mimeType: 'application/pdf',
+        documentType: 'discrepancy_memo',
+        uploadedAt: '2026-10-19T15:30:00.000Z',
+      },
+    ],
+    history: [
+      {
+        _id: 'h-020',
+        toStatus: 'submitted_to_bank',
+        updatedByName: 'Reviewer Vikram',
+        updatedAt: '2026-10-06T10:00:00.000Z',
+        reason: 'Courier dispatch.',
+      },
+      {
+        _id: 'h-021',
+        toStatus: 'discrepancy_found',
+        updatedByName: 'Reviewer Vikram',
+        updatedAt: '2026-10-19T15:30:00.000Z',
+        reason: 'Discrepancy memo received from bank.',
+      },
+    ],
+  },
+  {
+    _id: 'bcr-004',
+    fdr: 'fdr-4',
+    fdrNumber: 'HDFC-2026-FDR-55102',
+    institution: 'inst-3',
+    institutionName: 'Bangalore Institute of Management & Science',
+    bankName: 'HDFC Bank',
+    branch: 'Koramangala, Bangalore',
+    requestReference: 'BCR-2026-55102D',
+    status: 'submitted_to_bank',
+    initiatedByName: 'Registrar BIMS',
+    assignedOfficialName: 'Dr. Sunita Deshmukh',
+    requestDate: '2026-10-01T10:00:00.000Z',
+    submissionDetails: {
+      submissionDate: '2026-10-02T12:00:00.000Z',
+      submissionMethod: 'official_letter',
+      dispatchReference: 'DISPATCH-AICTE-OCT-092',
+      recipientBranchContact: 'branchmanager@hdfcbank.com',
+    },
+    deadlineDetails: {
+      deadlineDays: 15,
+      responseDeadline: '2026-10-17T12:00:00.000Z',
+      escalationLevel: 'critical_overdue',
+    },
+    isOverdue: true,
+    daysRemaining: -13,
+    daysOverdue: 13,
+    evidenceDocuments: [],
+    history: [
+      {
+        _id: 'h-030',
+        toStatus: 'submitted_to_bank',
+        updatedByName: 'Dr. Sunita Deshmukh',
+        updatedAt: '2026-10-02T12:00:00.000Z',
+        reason: 'Dispatched official verification request.',
+      },
+    ],
   },
 ];
 
@@ -782,6 +1036,38 @@ export function AuthProvider({ children }) {
           }
           if (path.includes('audit-trail')) {
             return Promise.resolve(DEMO_AUDIT_DATA);
+          }
+          if (path.includes('bank-confirmations/summary')) {
+            return Promise.resolve({
+              summary: isOff
+                ? { pending: 14, confirmed: 118, discrepancy: 3, overdue: 2, total: 137 }
+                : { pending: 1, confirmed: 2, discrepancy: 0, overdue: 0, total: 3 },
+            });
+          }
+          if (path.includes('bank-confirmations/check-deadlines')) {
+            return Promise.resolve({ message: 'Deadline monitor scan completed.', processedCount: 4, upcomingWarnings: 1, escalatedOverdue: 1 });
+          }
+          if (path.includes('bank-confirmations/') && !path.endsWith('bank-confirmations')) {
+            const parts = path.split('/');
+            const reqId = parts[parts.length - 1].split('?')[0];
+            const found = DEMO_BANK_CONFIRMATIONS.find((r) => r._id === reqId) || DEMO_BANK_CONFIRMATIONS[0];
+            return Promise.resolve({ confirmationRequest: found });
+          }
+          if (path.includes('bank-confirmations')) {
+            return Promise.resolve({
+              requests: DEMO_BANK_CONFIRMATIONS,
+              total: DEMO_BANK_CONFIRMATIONS.length,
+              page: 1,
+              limit: 20,
+              totalPages: 1,
+              summary: {
+                pending: 1,
+                confirmed: 1,
+                discrepancy: 1,
+                overdue: 1,
+                total: 4,
+              },
+            });
           }
           if (path.includes('institutions/me')) {
             return Promise.resolve({ institution: DEMO_INSTITUTION_USER.institution });
@@ -2739,6 +3025,7 @@ function PortalLayout() {
   const institutionItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
     { to: '/fdrs', label: 'FDR register', icon: FileSpreadsheet },
+    { to: '/bank-confirmations', label: 'Bank tracker', icon: Landmark },
     { to: '/fdrs/integrity', label: 'Integrity monitor', icon: ShieldCheck },
     { to: '/institution', label: 'Institution profile', icon: Building2 },
     { to: '/notifications', label: 'Notifications', icon: Bell, count: unread },
@@ -2748,6 +3035,7 @@ function PortalLayout() {
     { to: '/', label: 'Overview', icon: LayoutDashboard },
     { to: '/admin/review', label: 'Review queue', icon: FileCheck2 },
     { to: '/admin/institutions', label: 'Institutions', icon: Building2 },
+    { to: '/admin/bank-confirmations', label: 'Bank tracker', icon: Landmark },
     { to: '/admin/releases', label: 'Release requests', icon: ArrowUpRight },
     { to: '/admin/reports', label: 'FDR reports', icon: BarChart3 },
     { to: '/admin/integrity', label: 'Integrity monitor', icon: ShieldCheck },
@@ -2863,11 +3151,13 @@ function PortalLayout() {
             <Route path="fdrs" element={<FdrListPage />} />
             <Route path="fdrs/new" element={<RoleGuard roles={institutionRoles}><NewFdrPage /></RoleGuard>} />
             <Route path="fdrs/integrity" element={<IntegrityMonitorPage />} />
+            <Route path="bank-confirmations" element={<BankConfirmationTrackerPage />} />
             <Route path="fdrs/:id" element={<FdrDetailPage />} />
             <Route path="institution" element={<RoleGuard roles={institutionRoles}><InstitutionProfilePage /></RoleGuard>} />
             <Route path="admin/review" element={<RoleGuard roles={officialRoles}><ReviewQueuePage /></RoleGuard>} />
             <Route path="admin/review/:id" element={<RoleGuard roles={officialRoles}><ReviewDetailPage /></RoleGuard>} />
             <Route path="admin/institutions" element={<RoleGuard roles={officialRoles}><InstitutionAdminPage /></RoleGuard>} />
+            <Route path="admin/bank-confirmations" element={<RoleGuard roles={officialRoles}><BankConfirmationTrackerPage /></RoleGuard>} />
             <Route path="admin/releases" element={<RoleGuard roles={officialRoles}><ReleaseQueuePage /></RoleGuard>} />
             <Route path="admin/reports" element={<RoleGuard roles={officialRoles}><ReportsPage /></RoleGuard>} />
             <Route path="admin/integrity" element={<RoleGuard roles={officialRoles}><IntegrityMonitorPage /></RoleGuard>} />
@@ -3115,8 +3405,11 @@ function DashboardPage() {
             })}
           </div>
 
-          {/* LIVE FDR INTEGRITY MONITOR SECTION */}
-          <FdrIntegrityMonitorSection data={data} user={user} onRefresh={fetchDashboard} />
+          {/* DUAL VERIFICATION & INTEGRITY INTELLIGENCE DECK */}
+          <div className="dashboard-twin-deck-grid">
+            <FdrIntegrityMonitorSection data={data} user={user} onRefresh={fetchDashboard} />
+            <SmartBankConfirmationSection data={data} user={user} />
+          </div>
 
           {/* CENTRAL SPLIT DECK: Deposit Throughput + Bank Portfolio */}
           <div className="dashboard-analytics-grid">
@@ -6003,17 +6296,17 @@ function FdrIntegrityMonitorSection({ data, user, onRefresh }) {
       <div className="integrity-monitor-banner">
         <div className="integrity-title-badge-row">
           <div className="integrity-icon-box">
-            <ShieldCheck size={22} color="#002147" />
+            <ShieldCheck size={20} color="#002147" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <h3 id="integrity-monitor-heading" className="integrity-monitor-title">Live FDR Integrity Monitor</h3>
               <span className="integrity-live-pulse-badge">
                 <span className="live-pulse-dot" />
                 <span>SHA-256 Cryptographic Monitor</span>
               </span>
               {scanMessage && (
-                <span style={{ fontSize: 11.5, color: '#065f46', background: '#dcfce7', padding: '2px 8px', borderRadius: 4, fontWeight: 650 }}>
+                <span style={{ fontSize: 11, color: '#065f46', background: '#dcfce7', padding: '2px 6px', borderRadius: 4, fontWeight: 650 }}>
                   {scanMessage}
                 </span>
               )}
@@ -6033,27 +6326,27 @@ function FdrIntegrityMonitorSection({ data, user, onRefresh }) {
             disabled={scanning}
             aria-label="Run cryptographic integrity verification scan"
           >
-            <RefreshCw size={13} className={scanning ? 'spin' : ''} />
+            <RefreshCw size={12} className={scanning ? 'spin' : ''} />
             <span>{scanning ? 'Verifying Hashes…' : 'Run Integrity Scan'}</span>
           </button>
           <Link to={detailPath} className="btn-integrity-detail">
             <span>Detailed Monitor</span>
-            <ArrowRight size={13} />
+            <ArrowRight size={12} />
           </Link>
         </div>
       </div>
 
-      {/* 3 SUMMARY METRICS */}
-      <div className="integrity-metrics-grid">
+      {/* 2-ROW METRICS DECK */}
+      <div className="integrity-metrics-deck">
         {/* Metric A: Integrity Verified */}
-        <div className="integrity-metric-card metric-verified">
+        <div className="integrity-metric-card card-span-2 metric-verified">
           <div className="integrity-card-top">
             <span className="integrity-card-label">Integrity Verified</span>
             <span className="integrity-badge badge-green">SHA-256 Match ✓</span>
           </div>
           <div className="integrity-card-value-row">
             <span className="integrity-num">{integrityData.verified ?? 0}</span>
-            <CheckCircle2 size={24} color="#10B981" />
+            <CheckCircle2 size={22} color="#10B981" />
           </div>
           <div className="integrity-card-meta">
             <span>Current SHA-256 matches trusted upload hash</span>
@@ -6070,7 +6363,7 @@ function FdrIntegrityMonitorSection({ data, user, onRefresh }) {
           </div>
           <div className="integrity-card-value-row">
             <span className="integrity-num">{integrityData.mismatch ?? 0}</span>
-            <AlertTriangle size={24} color={(integrityData.mismatch || 0) > 0 ? '#EF4444' : '#94A3B8'} />
+            <AlertTriangle size={20} color={(integrityData.mismatch || 0) > 0 ? '#EF4444' : '#94A3B8'} />
           </div>
           <div className="integrity-card-meta">
             <span>{(integrityData.mismatch || 0) > 0 ? 'Unexpected byte changes detected · Investigate' : 'No byte alterations detected in repository'}</span>
@@ -6085,11 +6378,21 @@ function FdrIntegrityMonitorSection({ data, user, onRefresh }) {
           </div>
           <div className="integrity-card-value-row">
             <span className="integrity-num">{(integrityData.notChecked ?? 0) + (integrityData.unavailable ?? 0)}</span>
-            <HelpCircle size={24} color="#F59E0B" />
+            <HelpCircle size={20} color="#F59E0B" />
           </div>
           <div className="integrity-card-meta">
             <span>{integrityData.notChecked ?? 0} pending baseline check · {integrityData.unavailable ?? 0} missing / unreadable</span>
           </div>
+        </div>
+      </div>
+
+      <div className="twin-deck-footer">
+        <div className="twin-footer-left">
+          <span className="twin-footer-dot dot-green" />
+          <span>Repository Seal: <strong>SHA-256 Chained Integrity</strong></span>
+        </div>
+        <div className="twin-footer-right">
+          <span>Audit Status: <strong style={{ color: '#002147' }}>Active &amp; Tamper-Evident</strong></span>
         </div>
       </div>
     </section>
@@ -6629,6 +6932,1691 @@ function IntegrityMonitorPage() {
         </div>
       )}
     </PageHeader>
+  );
+}
+
+/* =========================================================================
+   FEATURE 3: SMART BANK CONFIRMATION TRACKER DASHBOARD & WORKFLOW
+   ========================================================================= */
+
+function getBankConfirmationStatusMeta(status) {
+  switch (status) {
+    case 'draft':
+      return { label: 'Draft', className: 'status-draft', tone: 'neutral' };
+    case 'pending_submission':
+      return { label: 'Pending Submission', className: 'status-pending_submission', tone: 'warning' };
+    case 'submitted_to_bank':
+      return { label: 'Submitted to Bank', className: 'status-submitted_to_bank', tone: 'info' };
+    case 'awaiting_bank_response':
+      return { label: 'Awaiting Bank Response', className: 'status-awaiting_bank_response', tone: 'info' };
+    case 'confirmed':
+      return { label: 'Confirmed ✓', className: 'status-confirmed', tone: 'success' };
+    case 'discrepancy_found':
+      return { label: 'Discrepancy Found ⚠', className: 'status-discrepancy_found', tone: 'danger' };
+    case 'unable_to_verify':
+      return { label: 'Unable to Verify', className: 'status-unable_to_verify', tone: 'purple' };
+    case 'closed':
+      return { label: 'Closed', className: 'status-closed', tone: 'neutral' };
+    default:
+      return { label: status || 'Pending', className: 'status-pending_submission', tone: 'neutral' };
+  }
+}
+
+function SmartBankConfirmationSection({ data, user }) {
+  const summary = useMemo(() => {
+    if (data?.bankConfirmationSummary) {
+      return data.bankConfirmationSummary;
+    }
+    return {
+      pending: 1,
+      confirmed: isOfficial(user) ? 118 : 2,
+      discrepancy: isOfficial(user) ? 3 : 0,
+      overdue: isOfficial(user) ? 2 : 0,
+      total: isOfficial(user) ? 137 : 3,
+    };
+  }, [data, user]);
+
+  const basePath = isOfficial(user) ? '/admin/bank-confirmations' : '/bank-confirmations';
+
+  return (
+    <section className="dashboard-confirmation-section" aria-labelledby="bank-tracker-heading">
+      <div className="confirmation-banner">
+        <div className="confirmation-title-badge-row">
+          <div className="confirmation-icon-box">
+            <Landmark size={20} color="#002147" />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 id="bank-tracker-heading" className="confirmation-title">Smart Bank Confirmation Tracker</h3>
+              <span className="integrity-live-pulse-badge">
+                <span className="live-pulse-dot dot-blue" />
+                <span>Dual-Track Branch Verification</span>
+              </span>
+            </div>
+            <p className="confirmation-desc">
+              Audit-ready tracking of written FDR verification requests with issuing bank branches, dispatch logs, and deadline monitoring.
+              <span className="integrity-disclaimer-tag">Note: Tracks documented correspondence; does not simulate automatic direct bank verification.</span>
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link to={basePath} className="btn-open-tracker">
+            <span>Open Confirmation Tracker</span>
+            <ArrowRight size={12} />
+          </Link>
+        </div>
+      </div>
+
+      {/* 4 SUMMARY METRIC CARDS in 2x2 Grid */}
+      <div className="confirmation-metrics-grid">
+        {/* Metric 1: Pending Confirmations */}
+        <Link to={`${basePath}?status=pending`} className="confirmation-metric-card card-pending">
+          <div className="conf-card-header">
+            <span className="conf-card-label">Pending Confirmations</span>
+            <span className="conf-badge conf-badge-blue">In Process</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.pending ?? 0}</span>
+            <Clock size={20} color="#3b82f6" />
+          </div>
+          <div className="conf-card-sub">
+            <span>Inquiries drafted, dispatched, or awaiting bank reply</span>
+          </div>
+        </Link>
+
+        {/* Metric 2: Confirmed FDRs */}
+        <Link to={`${basePath}?status=confirmed`} className="confirmation-metric-card card-confirmed">
+          <div className="conf-card-header">
+            <span className="conf-card-label">Confirmed FDRs</span>
+            <span className="conf-badge conf-badge-green">Verified ✓</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.confirmed ?? 0}</span>
+            <CheckCircle2 size={20} color="#10b981" />
+          </div>
+          <div className="conf-card-sub">
+            <span>Official written branch confirmation letter validated</span>
+          </div>
+        </Link>
+
+        {/* Metric 3: Discrepancies Requiring Review */}
+        <Link to={`${basePath}?status=discrepancy_found`} className="confirmation-metric-card card-discrepancy">
+          <div className="conf-card-header">
+            <span className="conf-card-label">Discrepancies Flagged</span>
+            <span className="conf-badge conf-badge-amber">Action Needed</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.discrepancy ?? 0}</span>
+            <AlertTriangle size={20} color="#f59e0b" />
+          </div>
+          <div className="conf-card-sub">
+            <span>Reported mismatch in principal, lien, or maturity date</span>
+          </div>
+        </Link>
+
+        {/* Metric 4: Overdue Requests */}
+        <Link to={`${basePath}?overdue=true`} className="confirmation-metric-card card-overdue">
+          <div className="conf-card-header">
+            <span className="conf-card-label">Overdue Requests</span>
+            <span className="conf-badge conf-badge-red">Overdue</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.overdue ?? 0}</span>
+            <AlertCircle size={20} color="#ef4444" />
+          </div>
+          <div className="conf-card-sub">
+            <span>Response deadline elapsed without branch reply (&gt;15 days)</span>
+          </div>
+        </Link>
+      </div>
+
+      <div className="twin-deck-footer">
+        <div className="twin-footer-left">
+          <span className="twin-footer-dot dot-blue" />
+          <span>Verification Track: <strong>Official Written Bank Inquiry</strong></span>
+        </div>
+        <div className="twin-footer-right">
+          <span>Statutory SLA: <strong style={{ color: '#002147' }}>14-Day Escalation Monitor</strong></span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BankConfirmationTrackerPage() {
+  const { user, request } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [records, setRecords] = useState([]);
+  const [summary, setSummary] = useState({ pending: 0, confirmed: 0, discrepancy: 0, overdue: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionNotice, setActionNotice] = useState('');
+
+  // Filters
+  const [selectedStatus, setSelectedStatus] = useState(searchParams.get('status') || 'all');
+  const [selectedBank, setSelectedBank] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(searchParams.get('overdue') === 'true');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Modals & Drawers
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [checkingDeadlines, setCheckingDeadlines] = useState(false);
+
+  const fetchConfirmations = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = new URLSearchParams();
+      if (selectedStatus && selectedStatus !== 'all') params.append('status', selectedStatus);
+      if (selectedBank) params.append('bankName', selectedBank);
+      if (searchTerm) params.append('search', searchTerm);
+      if (overdueOnly) params.append('overdue', 'true');
+      params.append('page', String(page));
+      params.append('limit', '15');
+
+      const res = await request(`/bank-confirmations?${params.toString()}`);
+      setRecords(res.requests || []);
+      setTotalPages(res.totalPages || 1);
+      if (res.summary) {
+        setSummary(res.summary);
+      }
+    } catch (err) {
+      if (user?.id?.startsWith('demo-')) {
+        let filtered = [...DEMO_BANK_CONFIRMATIONS];
+        if (selectedStatus && selectedStatus !== 'all') {
+          if (selectedStatus === 'pending') {
+            filtered = filtered.filter((r) => ['pending_submission', 'submitted_to_bank', 'awaiting_bank_response'].includes(r.status));
+          } else {
+            filtered = filtered.filter((r) => r.status === selectedStatus);
+          }
+        }
+        if (selectedBank) {
+          filtered = filtered.filter((r) => r.bankName.toLowerCase().includes(selectedBank.toLowerCase()));
+        }
+        if (searchTerm) {
+          const s = searchTerm.toLowerCase();
+          filtered = filtered.filter((r) =>
+            r.fdrNumber.toLowerCase().includes(s) ||
+            r.requestReference.toLowerCase().includes(s) ||
+            r.bankName.toLowerCase().includes(s)
+          );
+        }
+        if (overdueOnly) {
+          filtered = filtered.filter((r) => r.isOverdue);
+        }
+        setRecords(filtered);
+        setSummary({
+          pending: 1,
+          confirmed: 1,
+          discrepancy: 1,
+          overdue: 1,
+          total: 4,
+        });
+      } else {
+        setError(err.message || 'Failed to load bank confirmation requests.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [request, user, selectedStatus, selectedBank, searchTerm, overdueOnly, page]);
+
+  useEffect(() => {
+    fetchConfirmations();
+  }, [fetchConfirmations]);
+
+  const handleRunDeadlineCheck = async () => {
+    setCheckingDeadlines(true);
+    try {
+      const res = await request('/bank-confirmations/check-deadlines', { method: 'POST' });
+      setActionNotice(`Deadline check completed: ${res.upcomingWarnings || 0} upcoming warning(s), ${res.escalatedOverdue || 0} overdue escalated.`);
+      await fetchConfirmations();
+    } catch (err) {
+      setActionNotice(`Notice: ${err.message || 'Deadline scan completed.'}`);
+    } finally {
+      setCheckingDeadlines(false);
+      setTimeout(() => setActionNotice(''), 6000);
+    }
+  };
+
+  const handleDownloadDoc = async (reqId, docId, fileName) => {
+    try {
+      const blob = await request(`/bank-confirmations/${reqId}/documents/${docId}`);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'bank_evidence.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      alert(`Download unavailable in preview: ${err.message}`);
+    }
+  };
+
+  const handleInspect = async (reqItem) => {
+    try {
+      const data = await request(`/bank-confirmations/${reqItem._id}`);
+      setSelectedRequest(data.confirmationRequest || reqItem);
+    } catch {
+      setSelectedRequest(reqItem);
+    }
+  };
+
+  return (
+    <PageHeader
+      title="Smart Bank Confirmation Tracker"
+      description="Dual-track institutional verification workflow tracking official inquiries, branch dispatch references, response deadlines, and verified correspondence evidence."
+      actions={
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {isOfficial(user) && (
+            <button
+              type="button"
+              className="button button-outline"
+              onClick={handleRunDeadlineCheck}
+              disabled={checkingDeadlines}
+            >
+              <RefreshCw size={13} className={checkingDeadlines ? 'spin' : ''} />
+              <span>{checkingDeadlines ? 'Checking Deadlines…' : 'Check Deadlines & Escalate'}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="button button-primary"
+            style={{ backgroundColor: '#002147' }}
+            onClick={() => setIsNewModalOpen(true)}
+          >
+            <Plus size={15} />
+            <span>Initiate Confirmation</span>
+          </button>
+        </div>
+      }
+    >
+      {actionNotice && (
+        <div style={{ marginBottom: 16 }}>
+          <Notice tone="success">{actionNotice}</Notice>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginBottom: 16 }}>
+          <Notice tone="danger">{error}</Notice>
+        </div>
+      )}
+
+      {/* KPI STATS BAR */}
+      <div className="tracker-kpi-bar">
+        <div
+          className={`confirmation-metric-card card-pending ${selectedStatus === 'pending' ? 'active' : ''}`}
+          onClick={() => { setSelectedStatus('pending'); setOverdueOnly(false); }}
+        >
+          <div className="conf-card-header">
+            <span className="conf-card-label">Pending Confirmations</span>
+            <span className="conf-badge conf-badge-blue">In Flight</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.pending}</span>
+            <Clock size={20} color="#3b82f6" />
+          </div>
+          <div className="conf-card-sub">Awaiting dispatch or response</div>
+        </div>
+
+        <div
+          className={`confirmation-metric-card card-confirmed ${selectedStatus === 'confirmed' ? 'active' : ''}`}
+          onClick={() => { setSelectedStatus('confirmed'); setOverdueOnly(false); }}
+        >
+          <div className="conf-card-header">
+            <span className="conf-card-label">Confirmed FDRs</span>
+            <span className="conf-badge conf-badge-green">Validated</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.confirmed}</span>
+            <CheckCircle2 size={20} color="#10b981" />
+          </div>
+          <div className="conf-card-sub">Official written letter verified</div>
+        </div>
+
+        <div
+          className={`confirmation-metric-card card-discrepancy ${selectedStatus === 'discrepancy_found' ? 'active' : ''}`}
+          onClick={() => { setSelectedStatus('discrepancy_found'); setOverdueOnly(false); }}
+        >
+          <div className="conf-card-header">
+            <span className="conf-card-label">Discrepancies Flagged</span>
+            <span className="conf-badge conf-badge-amber">Action Req</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.discrepancy}</span>
+            <AlertTriangle size={20} color="#f59e0b" />
+          </div>
+          <div className="conf-card-sub">Principal / lien / date mismatch</div>
+        </div>
+
+        <div
+          className={`confirmation-metric-card card-overdue ${overdueOnly ? 'active' : ''}`}
+          onClick={() => { setOverdueOnly(!overdueOnly); setSelectedStatus('all'); }}
+        >
+          <div className="conf-card-header">
+            <span className="conf-card-label">Overdue Requests</span>
+            <span className="conf-badge conf-badge-red">Escalated</span>
+          </div>
+          <div className="conf-card-val-row">
+            <span className="conf-card-val">{summary.overdue}</span>
+            <AlertCircle size={20} color="#ef4444" />
+          </div>
+          <div className="conf-card-sub">&gt;15 days without response</div>
+        </div>
+      </div>
+
+      {/* FILTER CONTROLS */}
+      <div className="tracker-filter-bar">
+        <div className="tracker-status-pills">
+          {[
+            { id: 'all', label: 'All Requests' },
+            { id: 'pending', label: 'Pending' },
+            { id: 'submitted_to_bank', label: 'Submitted to Bank' },
+            { id: 'awaiting_bank_response', label: 'Awaiting Response' },
+            { id: 'confirmed', label: 'Confirmed ✓' },
+            { id: 'discrepancy_found', label: 'Discrepancy Found ⚠' },
+            { id: 'unable_to_verify', label: 'Unable to Verify' },
+            { id: 'closed', label: 'Closed' },
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              className={`tracker-status-pill-btn ${selectedStatus === pill.id && !overdueOnly ? 'active' : ''}`}
+              onClick={() => { setSelectedStatus(pill.id); setOverdueOnly(false); }}
+            >
+              {pill.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`tracker-status-pill-btn ${overdueOnly ? 'active' : ''}`}
+            style={overdueOnly ? { background: '#ef4444', borderColor: '#ef4444', color: '#fff' } : { color: '#ef4444' }}
+            onClick={() => setOverdueOnly(!overdueOnly)}
+          >
+            Overdue Only ⚠
+          </button>
+        </div>
+
+        <div className="tracker-inputs-row">
+          <div className="tracker-search-box">
+            <Search size={15} color="#64748b" />
+            <input
+              type="text"
+              placeholder="Search by FDR #, Request Ref, Bank, Branch, or Tracking #…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <select
+            className="tracker-select"
+            value={selectedBank}
+            onChange={(e) => setSelectedBank(e.target.value)}
+          >
+            <option value="">All Issuing Banks</option>
+            <option value="State Bank of India">State Bank of India</option>
+            <option value="Punjab National Bank">Punjab National Bank</option>
+            <option value="Bank of Baroda">Bank of Baroda</option>
+            <option value="Canara Bank">Canara Bank</option>
+            <option value="Union Bank of India">Union Bank of India</option>
+            <option value="HDFC Bank">HDFC Bank</option>
+            <option value="ICICI Bank">ICICI Bank</option>
+          </select>
+
+          <button
+            type="button"
+            className="button button-outline"
+            style={{ padding: '6px 12px', fontSize: 12.5 }}
+            onClick={fetchConfirmations}
+          >
+            <RefreshCw size={13} />
+            <span>Filter</span>
+          </button>
+        </div>
+      </div>
+
+      {/* TRACKER TABLE */}
+      <div className="tracker-table-wrap">
+        <table className="tracker-table">
+          <thead>
+            <tr>
+              <th>Request Ref &amp; FDR #</th>
+              <th>Institution</th>
+              <th>Issuing Bank &amp; Branch</th>
+              <th>Submission Date &amp; Method</th>
+              <th>Deadline &amp; Escalation</th>
+              <th>Status</th>
+              <th>Latest Response</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
+                  <RefreshCw size={20} className="spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+                  Loading bank confirmation records…
+                </td>
+              </tr>
+            ) : records.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                  <Landmark size={32} style={{ margin: '0 auto 8px', display: 'block', opacity: 0.5 }} />
+                  <strong>No bank confirmation requests found.</strong>
+                  <p style={{ fontSize: 12.5, margin: '4px 0 0' }}>Adjust search filters or initiate a new confirmation request.</p>
+                </td>
+              </tr>
+            ) : (
+              records.map((req) => {
+                const statusMeta = getBankConfirmationStatusMeta(req.status);
+                const deadlineDate = req.deadlineDetails?.responseDeadline ? new Date(req.deadlineDetails.responseDeadline) : null;
+                const submissionDate = req.submissionDetails?.submissionDate ? new Date(req.submissionDetails.submissionDate) : null;
+                const responseDate = req.bankResponse?.responseDate ? new Date(req.bankResponse.responseDate) : null;
+
+                return (
+                  <tr key={req._id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#002147' }}>{req.requestReference}</div>
+                      <div style={{ fontSize: 11.5, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Hash size={11} />
+                        <span>{req.fdrNumber}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{req.institutionName || 'Technical Institution'}</div>
+                      <div style={{ fontSize: 11.5, color: '#64748b' }}>Assigned: {req.assignedOfficialName || 'Unassigned'}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{req.bankName}</div>
+                      <div style={{ fontSize: 11.5, color: '#64748b' }}>{req.branch}</div>
+                    </td>
+                    <td>
+                      {submissionDate ? (
+                        <>
+                          <div style={{ fontWeight: 600 }}>{submissionDate.toISOString().slice(0, 10)}</div>
+                          <div style={{ fontSize: 11.5, color: '#64748b', textTransform: 'capitalize' }}>
+                            {req.submissionDetails?.submissionMethod?.replace(/_/g, ' ') || 'Official dispatch'}
+                          </div>
+                          {req.submissionDetails?.dispatchReference && (
+                            <div style={{ fontSize: 10.5, color: '#0284c7', fontFamily: 'monospace' }}>
+                              {req.submissionDetails.dispatchReference}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>Not yet dispatched</span>
+                      )}
+                    </td>
+                    <td>
+                      {deadlineDate ? (
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{deadlineDate.toISOString().slice(0, 10)}</div>
+                          {req.isOverdue ? (
+                            <span className="overdue-indicator-tag">
+                              <AlertCircle size={10} />
+                              <span>OVERDUE: {req.daysOverdue}d</span>
+                            </span>
+                          ) : req.daysRemaining <= 3 && req.daysRemaining >= 0 && ['submitted_to_bank', 'awaiting_bank_response'].includes(req.status) ? (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: 4 }}>
+                              Due in {req.daysRemaining}d
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: '#64748b' }}>{req.deadlineDetails?.deadlineDays || 15}d SLA</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`conf-status-tag ${statusMeta.className}`}>
+                        {statusMeta.label}
+                      </span>
+                    </td>
+                    <td>
+                      {responseDate ? (
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{responseDate.toISOString().slice(0, 10)}</div>
+                          <div style={{ fontSize: 11.5, textTransform: 'capitalize', color: req.bankResponse?.outcome === 'confirmed' ? '#15803d' : '#b91c1c' }}>
+                            {req.bankResponse?.outcome?.replace(/_/g, ' ')}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: 12 }}>Pending reply</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn-row-action"
+                        onClick={() => handleInspect(req)}
+                      >
+                        Inspect
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* DETAIL MODAL / DRAWER */}
+      {selectedRequest && (
+        <ConfirmationDetailDrawer
+          requestItem={selectedRequest}
+          user={user}
+          onClose={() => setSelectedRequest(null)}
+          onRefresh={() => {
+            fetchConfirmations();
+            handleInspect(selectedRequest);
+          }}
+          onOpenSubmission={() => setIsSubmissionModalOpen(true)}
+          onOpenResponse={() => setIsResponseModalOpen(true)}
+          onOpenInquiry={() => setIsInquiryModalOpen(true)}
+          onOpenStatus={() => setIsStatusModalOpen(true)}
+          onDownloadDoc={handleDownloadDoc}
+        />
+      )}
+
+      {/* INITIATE NEW CONFIRMATION MODAL */}
+      {isNewModalOpen && (
+        <NewBankConfirmationModal
+          user={user}
+          onClose={() => setIsNewModalOpen(false)}
+          onSuccess={() => {
+            setIsNewModalOpen(false);
+            fetchConfirmations();
+          }}
+        />
+      )}
+
+      {/* RECORD SUBMISSION MODAL */}
+      {isSubmissionModalOpen && selectedRequest && (
+        <RecordSubmissionModal
+          requestItem={selectedRequest}
+          onClose={() => setIsSubmissionModalOpen(false)}
+          onSuccess={() => {
+            setIsSubmissionModalOpen(false);
+            fetchConfirmations();
+            handleInspect(selectedRequest);
+          }}
+        />
+      )}
+
+      {/* RECORD BANK RESPONSE MODAL */}
+      {isResponseModalOpen && selectedRequest && (
+        <RecordBankResponseModal
+          requestItem={selectedRequest}
+          onClose={() => setIsResponseModalOpen(false)}
+          onSuccess={() => {
+            setIsResponseModalOpen(false);
+            fetchConfirmations();
+            handleInspect(selectedRequest);
+          }}
+        />
+      )}
+
+      {/* INQUIRY EMAIL DRAFT MODAL */}
+      {isInquiryModalOpen && selectedRequest && (
+        <BankInquiryLetterModal
+          requestItem={selectedRequest}
+          user={user}
+          onClose={() => setIsInquiryModalOpen(false)}
+        />
+      )}
+
+      {/* STATUS CHANGE MODAL */}
+      {isStatusModalOpen && selectedRequest && (
+        <ChangeStatusModal
+          requestItem={selectedRequest}
+          onClose={() => setIsStatusModalOpen(false)}
+          onSuccess={() => {
+            setIsStatusModalOpen(false);
+            fetchConfirmations();
+            handleInspect(selectedRequest);
+          }}
+        />
+      )}
+    </PageHeader>
+  );
+}
+
+/* =========================================================================
+   SUB-MODALS AND DETAIL DRAWER FOR CONFIRMATION TRACKER
+   ========================================================================= */
+
+function ConfirmationDetailDrawer({
+  requestItem,
+  user,
+  onClose,
+  onRefresh,
+  onOpenSubmission,
+  onOpenResponse,
+  onOpenInquiry,
+  onOpenStatus,
+  onDownloadDoc,
+}) {
+  const statusMeta = getBankConfirmationStatusMeta(requestItem.status);
+  const isOff = isOfficial(user);
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 840 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="confirmation-icon-box" style={{ width: 36, height: 36 }}>
+              <Landmark size={18} color="#002147" />
+            </div>
+            <div>
+              <h3 className="audit-modal-title">Confirmation Request · {requestItem.requestReference}</h3>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                FDR: <strong>{requestItem.fdrNumber}</strong> · {requestItem.bankName} ({requestItem.branch})
+              </p>
+            </div>
+          </div>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Status & Overdue Alert Banner */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Workflow Status:</span>
+              <span className={`conf-status-tag ${statusMeta.className}`}>
+                {statusMeta.label}
+              </span>
+            </div>
+
+            {requestItem.isOverdue && (
+              <div className="overdue-indicator-tag" style={{ padding: '3px 10px', fontSize: 12 }}>
+                <AlertCircle size={13} />
+                <span>Escalation: Overdue by {requestItem.daysOverdue} days</span>
+              </div>
+            )}
+          </div>
+
+          {/* 2-Column Split: Dispatch vs Bank Findings */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {/* Left: Dispatch Details */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#002147', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Send size={14} color="#0284c7" /> Dispatch &amp; Deadline
+                </span>
+                {isOff && requestItem.status === 'pending_submission' && (
+                  <button type="button" className="button button-outline" style={{ padding: '3px 8px', fontSize: 11.5 }} onClick={onOpenSubmission}>
+                    Record Dispatch
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                <div><strong>Submission Date:</strong> {requestItem.submissionDetails?.submissionDate ? new Date(requestItem.submissionDetails.submissionDate).toISOString().slice(0, 10) : 'Not dispatched'}</div>
+                <div><strong>Dispatch Method:</strong> {requestItem.submissionDetails?.submissionMethod ? requestItem.submissionDetails.submissionMethod.replace(/_/g, ' ') : '—'}</div>
+                <div><strong>Tracking / Ref:</strong> <code>{requestItem.submissionDetails?.dispatchReference || 'None'}</code></div>
+                <div><strong>Recipient Branch:</strong> {requestItem.submissionDetails?.recipientBranchContact || requestItem.branch}</div>
+                <div><strong>Response Deadline:</strong> {requestItem.deadlineDetails?.responseDeadline ? new Date(requestItem.deadlineDetails.responseDeadline).toISOString().slice(0, 10) : '—'}</div>
+                <div><strong>Assigned Official:</strong> {requestItem.assignedOfficialName || 'AICTE Regional Desk'}</div>
+                {requestItem.submissionDetails?.notes && (
+                  <div style={{ marginTop: 4, background: '#f8fafc', padding: '6px 8px', borderRadius: 4, fontStyle: 'italic', color: '#475569' }}>
+                    "{requestItem.submissionDetails.notes}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Bank Response Details */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#002147', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Building2 size={14} color="#10b981" /> Bank Written Response
+                </span>
+                {isOff && ['submitted_to_bank', 'awaiting_bank_response', 'discrepancy_found'].includes(requestItem.status) && (
+                  <button type="button" className="button button-outline" style={{ padding: '3px 8px', fontSize: 11.5 }} onClick={onOpenResponse}>
+                    Record Response
+                  </button>
+                )}
+              </div>
+
+              {requestItem.bankResponse?.responseDate ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                  <div><strong>Response Date:</strong> {new Date(requestItem.bankResponse.responseDate).toISOString().slice(0, 10)}</div>
+                  <div><strong>Bank Letter Ref:</strong> <code>{requestItem.bankResponse.responseReference || 'N/A'}</code></div>
+                  <div><strong>Responder Officer:</strong> {requestItem.bankResponse.responderName || 'Branch Manager'} ({requestItem.bankResponse.responderDesignation || 'Officer'})</div>
+                  <div><strong>Contact:</strong> {requestItem.bankResponse.responderContact || 'Official Bank Domain'}</div>
+                  <div><strong>Confirmation Outcome:</strong> <span style={{ fontWeight: 700, color: requestItem.bankResponse.outcome === 'confirmed' ? '#15803d' : '#b91c1c' }}>{requestItem.bankResponse.outcome}</span></div>
+
+                  {requestItem.bankResponse.outcome === 'discrepancy_found' && (
+                    <div className="discrepancy-alert-box">
+                      <strong style={{ color: '#b45309', display: 'block', marginBottom: 4 }}>Discrepancies Flagged by Bank:</strong>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                        {requestItem.bankResponse.discrepancies?.amountMismatch && <li>Principal deposit amount mismatch with core banking record</li>}
+                        {requestItem.bankResponse.discrepancies?.datesMismatch && <li>Issue or maturity date differs from branch ledger</li>}
+                        {requestItem.bankResponse.discrepancies?.lienNotMarked && <li>Lien in favor of AICTE has NOT been marked on the deposit</li>}
+                        {requestItem.bankResponse.discrepancies?.beneficiaryMismatch && <li>Account title / depositor name mismatch</li>}
+                        {requestItem.bankResponse.discrepancies?.notes && <li>{requestItem.bankResponse.discrepancies.notes}</li>}
+                      </ul>
+                    </div>
+                  )}
+
+                  {requestItem.bankResponse.generalNotes && (
+                    <div style={{ marginTop: 4, background: '#f8fafc', padding: '6px 8px', borderRadius: 4, color: '#475569' }}>
+                      "{requestItem.bankResponse.generalNotes}"
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center', padding: '24px 0' }}>
+                  No official bank written response recorded yet.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Evidence Documents Section */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#002147', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <FileCheck size={14} color="#002147" /> Supporting Written Evidence &amp; Correspondence ({requestItem.evidenceDocuments?.length || 0})
+            </span>
+
+            {requestItem.evidenceDocuments?.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {requestItem.evidenceDocuments.map((doc, idx) => (
+                  <div key={doc._id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                      <FileText size={16} color="#0284c7" />
+                      <div>
+                        <span style={{ fontWeight: 600 }}>{doc.fileName}</span>
+                        <span style={{ color: '#64748b', fontSize: 11, marginLeft: 8 }}>({Math.round((doc.fileSize || 0) / 1024)} KB) · {doc.documentType?.replace(/_/g, ' ')}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="button button-outline"
+                      style={{ padding: '3px 8px', fontSize: 11.5 }}
+                      onClick={() => onDownloadDoc(requestItem._id, doc._id, doc.fileName)}
+                    >
+                      <Download size={12} />
+                      <span>Download</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: 12, fontStyle: 'italic' }}>
+                No evidence files attached. Note: At least one official response letter is required to confirm bank verification.
+              </div>
+            )}
+          </div>
+
+          {/* Audit History Timeline */}
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#002147', display: 'block', marginBottom: 10 }}>
+              Decision &amp; Transition History
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {(requestItem.history || []).map((step, idx) => (
+                <div key={step._id || idx} className="timeline-step-item">
+                  <div className="timeline-step-dot">{idx + 1}</div>
+                  <div style={{ flex: 1, fontSize: 12.5 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 650, color: '#002147' }}>{step.reason}</span>
+                      <span style={{ color: '#64748b', fontSize: 11 }}>{step.updatedAt ? new Date(step.updatedAt).toISOString().replace('T', ' ').slice(0, 16) : ''} UTC</span>
+                    </div>
+                    <div style={{ color: '#475569', fontSize: 11.5 }}>
+                      Action by: <strong>{step.updatedByName || 'Official User'}</strong> · Status transitioned to: <code>{step.toStatus}</code>
+                    </div>
+                    {step.notes && <div style={{ color: '#64748b', fontSize: 11.5, marginTop: 2 }}>{step.notes}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="audit-modal-footer" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="button button-outline" onClick={onOpenInquiry}>
+              <Mail size={13} />
+              <span>Generate Inquiry Draft</span>
+            </button>
+            {isOff && (
+              <button type="button" className="button button-outline" onClick={onOpenStatus}>
+                Update Status
+              </button>
+            )}
+          </div>
+
+          <button type="button" className="button button-outline" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewBankConfirmationModal({ user, onClose, onSuccess }) {
+  const { request } = useAuth();
+  const [fdrId, setFdrId] = useState('');
+  const [fdrNumber, setFdrNumber] = useState('');
+  const [bankName, setBankName] = useState('State Bank of India');
+  const [branch, setBranch] = useState('');
+  const [deadlineDays, setDeadlineDays] = useState(15);
+  const [remarks, setRemarks] = useState('');
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const [availableFdrs, setAvailableFdrs] = useState([]);
+
+  useEffect(() => {
+    request('/fdrs?limit=20')
+      .then((res) => {
+        const list = res.records || res.fdrs || [];
+        setAvailableFdrs(list);
+        if (list.length > 0) {
+          setFdrId(list[0]._id || list[0].id);
+          setFdrNumber(list[0].fdrNumber);
+          setBankName(list[0].bankName || 'State Bank of India');
+          setBranch(list[0].branch || '');
+        }
+      })
+      .catch(() => {
+        // Fallback demo FDR
+        setFdrId('demo-fdr-001');
+        setFdrNumber('SBIN-2026-FDR-98124');
+      });
+  }, [request]);
+
+  const handleSelectFdr = (e) => {
+    const selectedId = e.target.value;
+    setFdrId(selectedId);
+    const found = availableFdrs.find((f) => (f._id || f.id) === selectedId);
+    if (found) {
+      setFdrNumber(found.fdrNumber);
+      setBankName(found.bankName || 'State Bank of India');
+      setBranch(found.branch || '');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('fdrId', fdrId);
+      formData.append('fdrNumber', fdrNumber);
+      formData.append('bankName', bankName);
+      formData.append('branch', branch || 'Main Branch');
+      formData.append('deadlineDays', String(deadlineDays));
+      formData.append('remarks', remarks);
+      if (file) {
+        formData.append('document', file);
+      }
+
+      await request('/bank-confirmations', {
+        method: 'POST',
+        body: formData,
+      });
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Failed to create confirmation request.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <h3 className="audit-modal-title">Initiate Bank Confirmation Request</h3>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {error && <Notice tone="danger">{error}</Notice>}
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Select Security Deposit FDR <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              {availableFdrs.length > 0 ? (
+                <select
+                  className="tracker-select"
+                  style={{ width: '100%' }}
+                  value={fdrId}
+                  onChange={handleSelectFdr}
+                  required
+                >
+                  {availableFdrs.map((f) => (
+                    <option key={f._id || f.id} value={f._id || f.id}>
+                      {f.fdrNumber} · {f.bankName} (₹{Number(f.amount || 0).toLocaleString('en-IN')})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  className="input"
+                  value={fdrNumber}
+                  onChange={(e) => setFdrNumber(e.target.value)}
+                  placeholder="e.g. SBIN-2026-FDR-98124"
+                  required
+                />
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>Issuing Bank</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>Branch Name</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder="e.g. Parliament Street"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Response Deadline Window (Days)
+              </label>
+              <select
+                className="tracker-select"
+                style={{ width: '100%' }}
+                value={deadlineDays}
+                onChange={(e) => setDeadlineDays(Number(e.target.value))}
+              >
+                <option value={7}>7 Calendar Days (Urgent / Inspection Window)</option>
+                <option value={15}>15 Calendar Days (Standard APH Guideline)</option>
+                <option value={30}>30 Calendar Days (Inter-State / Head Office)</option>
+                <option value={45}>45 Calendar Days (Extended Clarification)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Attach Official Inquiry Letter (Optional Scan/PDF)
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                style={{ fontSize: 12.5 }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>Remarks / Purpose</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="e.g. Routine 10-year statutory lien verification as per APH 2026-27."
+              />
+            </div>
+          </div>
+
+          <div className="audit-modal-footer">
+            <button type="button" className="button button-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button-primary"
+              style={{ backgroundColor: '#002147' }}
+              disabled={saving}
+            >
+              {saving ? 'Initiating…' : 'Create Confirmation Request'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RecordSubmissionModal({ requestItem, onClose, onSuccess }) {
+  const { request } = useAuth();
+  const [submissionDate, setSubmissionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [submissionMethod, setSubmissionMethod] = useState('registered_post_courier');
+  const [dispatchReference, setDispatchReference] = useState('');
+  const [recipientBranchContact, setRecipientBranchContact] = useState('');
+  const [deadlineDays, setDeadlineDays] = useState(requestItem.deadlineDetails?.deadlineDays || 15);
+  const [notes, setNotes] = useState('');
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('submissionDate', submissionDate);
+      formData.append('submissionMethod', submissionMethod);
+      formData.append('dispatchReference', dispatchReference || `DISPATCH-${Date.now()}`);
+      formData.append('recipientBranchContact', recipientBranchContact);
+      formData.append('deadlineDays', String(deadlineDays));
+      formData.append('notes', notes);
+      if (file) {
+        formData.append('document', file);
+      }
+
+      await request(`/bank-confirmations/${requestItem._id}/submission`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Failed to record bank submission.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <h3 className="audit-modal-title">Record Bank Submission / Dispatch</h3>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {error && <Notice tone="danger">{error}</Notice>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Actual Dispatch Date <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  className="input"
+                  value={submissionDate}
+                  onChange={(e) => setSubmissionDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Submission Channel <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select
+                  className="tracker-select"
+                  style={{ width: '100%' }}
+                  value={submissionMethod}
+                  onChange={(e) => setSubmissionMethod(e.target.value)}
+                >
+                  <option value="registered_post_courier">Registered Post / Speed Post</option>
+                  <option value="official_letter">Physical Hand Delivery / Peon Book</option>
+                  <option value="official_email">Official Domain Email</option>
+                  <option value="bank_portal">Bank Corporate Verification Portal</option>
+                  <option value="branch_visit">Official Branch Visit</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Dispatch Reference / Postal Tracking No. <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. SP-DEL-89412-IN or AICTE/RO/2026/FDR/891"
+                value={dispatchReference}
+                onChange={(e) => setDispatchReference(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Branch Contact / Manager Email / Address
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. branchmanager.00691@sbi.co.in"
+                value={recipientBranchContact}
+                onChange={(e) => setRecipientBranchContact(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Attach Postal Receipt / Email PDF Proof
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                style={{ fontSize: 12.5 }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>Dispatch Notes</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Dispatched formal council verification inquiry along with specimen copy."
+              />
+            </div>
+          </div>
+
+          <div className="audit-modal-footer">
+            <button type="button" className="button button-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button-primary"
+              style={{ backgroundColor: '#002147' }}
+              disabled={saving}
+            >
+              {saving ? 'Recording…' : 'Record Submission'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RecordBankResponseModal({ requestItem, onClose, onSuccess }) {
+  const { request } = useAuth();
+  const [responseDate, setResponseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [responseReference, setResponseReference] = useState('');
+  const [responderName, setResponderName] = useState('');
+  const [responderDesignation, setResponderDesignation] = useState('Chief Manager');
+  const [responderContact, setResponderContact] = useState('');
+  const [outcome, setOutcome] = useState('confirmed');
+  const [generalNotes, setGeneralNotes] = useState('');
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Discrepancy flags
+  const [amountMismatch, setAmountMismatch] = useState(false);
+  const [datesMismatch, setDatesMismatch] = useState(false);
+  const [lienNotMarked, setLienNotMarked] = useState(false);
+  const [beneficiaryMismatch, setBeneficiaryMismatch] = useState(false);
+  const [discrepancyNotes, setDiscrepancyNotes] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    if (outcome === 'confirmed') {
+      const hasExistingDoc = requestItem.evidenceDocuments && requestItem.evidenceDocuments.length > 0;
+      if (!file && !hasExistingDoc) {
+        setError('A supporting response letter or bank correspondence document is required before confirming verification.');
+        setSaving(false);
+        return;
+      }
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('responseDate', responseDate);
+      formData.append('responseReference', responseReference);
+      formData.append('responderName', responderName);
+      formData.append('responderDesignation', responderDesignation);
+      formData.append('responderContact', responderContact);
+      formData.append('outcome', outcome);
+      formData.append('generalNotes', generalNotes);
+      formData.append(
+        'discrepancies',
+        JSON.stringify({
+          amountMismatch,
+          datesMismatch,
+          lienNotMarked,
+          beneficiaryMismatch,
+          notes: discrepancyNotes,
+        })
+      );
+      if (file) {
+        formData.append('document', file);
+      }
+
+      await request(`/bank-confirmations/${requestItem._id}/response`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Failed to record bank response.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <h3 className="audit-modal-title">Record Bank Written Response &amp; Evidence</h3>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {error && <Notice tone="danger">{error}</Notice>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Response Date <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  className="input"
+                  value={responseDate}
+                  onChange={(e) => setResponseDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Bank Outcome <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select
+                  className="tracker-select"
+                  style={{ width: '100%' }}
+                  value={outcome}
+                  onChange={(e) => setOutcome(e.target.value)}
+                >
+                  <option value="confirmed">Confirmed (Genuine &amp; Lien Verified) ✓</option>
+                  <option value="discrepancy_found">Discrepancy Found ⚠</option>
+                  <option value="clarification_requested">Clarification Requested by Bank</option>
+                  <option value="unable_to_verify">Unable to Verify</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Bank Reference Number
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. SBI/PARL/CONF/2026/89"
+                  value={responseReference}
+                  onChange={(e) => setResponseReference(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Officer Designation
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={responderDesignation}
+                  onChange={(e) => setResponderDesignation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Branch Officer Name
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. R. K. Malhotra"
+                  value={responderName}
+                  onChange={(e) => setResponderName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                  Officer Email / Contact
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. branch.mgr@sbi.co.in"
+                  value={responderContact}
+                  onChange={(e) => setResponderContact(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* MANDATORY EVIDENCE FILE PICKER */}
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#002147', marginBottom: 4 }}>
+                Upload Written Bank Response Letter / Email PDF {outcome === 'confirmed' && <span style={{ color: '#ef4444' }}>* (Required for Confirmed)</span>}
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                style={{ fontSize: 12.5 }}
+                required={outcome === 'confirmed' && !(requestItem.evidenceDocuments?.length > 0)}
+              />
+              <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
+                Preserves non-repudiable audit evidence linked to this FDR record.
+              </span>
+            </div>
+
+            {/* DISCREPANCY CHECKLIST (IF DISCREPANCY OUTCOME) */}
+            {outcome === 'discrepancy_found' && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: 12 }}>
+                <strong style={{ fontSize: 12.5, color: '#b45309', display: 'block', marginBottom: 6 }}>
+                  Select Discrepancies Flagged by Bank:
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input type="checkbox" checked={amountMismatch} onChange={(e) => setAmountMismatch(e.target.checked)} />
+                    Principal Amount Mismatch
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input type="checkbox" checked={datesMismatch} onChange={(e) => setDatesMismatch(e.target.checked)} />
+                    Maturity / Issue Date Mismatch
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input type="checkbox" checked={lienNotMarked} onChange={(e) => setLienNotMarked(e.target.checked)} />
+                    Lien Not Marked for AICTE
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input type="checkbox" checked={beneficiaryMismatch} onChange={(e) => setBeneficiaryMismatch(e.target.checked)} />
+                    Depositor / Account Title Mismatch
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  className="input"
+                  style={{ marginTop: 8 }}
+                  placeholder="Additional discrepancy findings details…"
+                  value={discrepancyNotes}
+                  onChange={(e) => setDiscrepancyNotes(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Review Remarks / Resolution Notes
+              </label>
+              <textarea
+                className="input"
+                rows={2}
+                value={generalNotes}
+                onChange={(e) => setGeneralNotes(e.target.value)}
+                placeholder="e.g. Branch confirmation letter reviewed and archived. Statutory lien validated."
+              />
+            </div>
+          </div>
+
+          <div className="audit-modal-footer">
+            <button type="button" className="button button-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button-primary"
+              style={{ backgroundColor: '#002147' }}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Record Bank Response'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function BankInquiryLetterModal({ requestItem, user, onClose }) {
+  const [copied, setCopied] = useState(false);
+
+  const letterSubject = `AICTE Security Deposit Verification: FDR Ref ${requestItem.fdrNumber} · ${requestItem.institutionName || 'Institution'}`;
+  const letterBody = `To: The Branch Manager / Authorized Verification Officer
+${requestItem.bankName}, ${requestItem.branch} Branch
+
+Subject: Official Verification Request for Fixed Deposit Receipt (FDR No: ${requestItem.fdrNumber})
+
+Dear Sir / Madam,
+
+This is an administrative inquiry regarding Fixed Deposit Receipt (FDR) details submitted to the AICTE Security Deposit Portal by ${requestItem.institutionName || 'the approved technical institution'}.
+
+Instrument Details for Verification:
+- Fixed Deposit Receipt No.: ${requestItem.fdrNumber}
+- Confirmation Tracking Ref: ${requestItem.requestReference}
+- Issuing Bank: ${requestItem.bankName}
+- Branch: ${requestItem.branch}
+- Request Date: ${requestItem.requestDate ? new Date(requestItem.requestDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}
+- Response Window Deadline: ${requestItem.deadlineDetails?.responseDeadline ? new Date(requestItem.deadlineDetails.responseDeadline).toISOString().slice(0, 10) : '15 days from dispatch'}
+
+We request your branch to confirm:
+1. Whether the referenced Fixed Deposit Receipt was genuinely issued by your branch.
+2. Whether the deposit is currently active, unencumbered, and held in favor of or lien-marked for AICTE security deposit obligations as applicable.
+3. Whether the principal amount and maturity date recorded match the core banking system.
+
+Kindly reply to this inquiry from an official bank domain email address attaching the signed confirmation letter.
+
+Sincerely,
+${user?.fullName || 'Authorized Reviewer'}
+Administrative Review & Verification Team
+AICTE Security Deposit Management Portal
+Government of India`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`Subject: ${letterSubject}\n\n${letterBody}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <h3 className="audit-modal-title">Pre-Drafted Official Bank Inquiry Letter</h3>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>
+            Ready-to-use authoritative inquiry template formatted according to AICTE Approval Process Handbook (APH) verification norms.
+          </div>
+
+          <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 6, padding: '10px 14px', fontSize: 12.5 }}>
+            <div style={{ marginBottom: 8, fontWeight: 700, color: '#002147' }}>Subject: {letterSubject}</div>
+            <pre style={{ margin: 0, fontFamily: 'inherit', whiteSpace: 'pre-wrap', lineHeight: 1.5, color: '#1e293b' }}>
+              {letterBody}
+            </pre>
+          </div>
+        </div>
+
+        <div className="audit-modal-footer">
+          <button type="button" className="button button-outline" onClick={onClose}>
+            Close
+          </button>
+          <button
+            type="button"
+            className="button button-primary"
+            style={{ backgroundColor: '#002147' }}
+            onClick={handleCopy}
+          >
+            <Copy size={13} />
+            <span>{copied ? 'Copied to Clipboard! ✓' : 'Copy Inquiry Draft'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChangeStatusModal({ requestItem, onClose, onSuccess }) {
+  const { request } = useAuth();
+  const [newStatus, setNewStatus] = useState(requestItem.status);
+  const [reason, setReason] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      await request(`/bank-confirmations/${requestItem._id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: newStatus,
+          reason,
+          notes,
+        }),
+      });
+
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Failed to update status.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="audit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="audit-modal-card" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+        <div className="audit-modal-header">
+          <h3 className="audit-modal-title">Update Confirmation Status</h3>
+          <button type="button" className="audit-modal-close" onClick={onClose} aria-label="Close dialog">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {error && <Notice tone="danger">{error}</Notice>}
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Current Status: <code>{requestItem.status}</code>
+              </label>
+              <select
+                className="tracker-select"
+                style={{ width: '100%' }}
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+              >
+                <option value="pending_submission">Pending Submission</option>
+                <option value="submitted_to_bank">Submitted to Bank</option>
+                <option value="awaiting_bank_response">Awaiting Bank Response</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="discrepancy_found">Discrepancy Found</option>
+                <option value="unable_to_verify">Unable to Verify</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>
+                Reason for Transition <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Bank inquiry closed after branch review"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 4 }}>Additional Notes</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes…"
+              />
+            </div>
+          </div>
+
+          <div className="audit-modal-footer">
+            <button type="button" className="button button-outline" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button-primary"
+              style={{ backgroundColor: '#002147' }}
+              disabled={saving}
+            >
+              {saving ? 'Updating…' : 'Update Status'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
