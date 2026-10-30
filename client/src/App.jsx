@@ -732,162 +732,701 @@ export const DEMO_NOTIFICATIONS_DATA = {
 
 export const DEMO_FDR_DATA = {
   records: [
-    {
-      id: 'fdr-1',
-      fdrNumber: 'SBIN-2026-FDR-98124',
-      bankName: 'State Bank of India',
-      issuingBank: 'State Bank of India',
-      branch: 'Parliament Street, New Delhi',
-      branchName: 'Parliament Street, New Delhi',
-      ifscCode: 'SBIN0000691',
-      amount: 12500000,
-      currency: 'INR',
-      issueDate: '2026-04-01',
-      maturityDate: '2036-03-31',
-      interestRate: 7.10,
-      depositorName: 'Delhi Institute of Engineering & Technology',
-      financialStatus: 'active',
-      workflowStatus: 'submitted',
-      trustScore: {
-        score: 94,
-        category: 'low_observed_risk',
-        evidenceCoverage: 88,
-        summary: 'Demo verified sample with consistent statutory parameters.',
-      },
-      riskAssessment: {
-        score: 0,
-        level: 'low',
-        summary: 'Statutory Verification Standards Satisfied. 0 active risk findings.',
-        findings: [],
-      },
-      bankVerification: {
-        status: 'pending',
-        qrCode: {
-          detected: true,
-          candidateUrl: 'https://bank.sbi/verify/fdr-98124',
-        },
-      },
-      duplicateCheck: {
-        status: 'no_candidate_found',
-        candidateCount: 0,
-        matches: [],
-      },
-      documentMetadata: {
-        fileName: 'sample_fdr_for_testing.pdf',
-        fileSize: 28672,
-        mimeType: 'application/pdf',
-        checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      },
-      document: {
-        fileName: 'sample_fdr_for_testing.pdf',
-        fileSize: 28672,
-        mimeType: 'application/pdf',
-        checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        downloadEndpoint: '/fdrs/fdr-1/document',
-      },
-      ocr: {
-        status: 'completed',
-        requestedLanguage: 'en-IN',
-        languageName: 'English (India)',
-        extractedFields: {
-          fdr_number: 'SBIN-2026-FDR-98124',
-          bank_name: 'State Bank of India',
-          branch_name: 'Parliament Street, New Delhi',
-          deposit_amount: 12500000,
-          currency: 'INR',
-          issue_date: '2026-04-01',
-          maturity_date: '2036-03-31',
-          interest_rate: 7.10,
-          depositor_name: 'Delhi Institute of Engineering & Technology',
-          ifsc_code: 'SBIN0000691',
-        },
-        comparisons: {
-          fdr_number: { status: 'match' },
-          deposit_amount: { status: 'match' },
-          maturity_date: { status: 'match' },
-        },
-      },
-      submittedAt: '2026-08-15T10:00:00Z',
-      createdAt: '2026-08-15T10:00:00Z',
-      institution: { name: 'Delhi Institute of Engineering & Technology', institutionCode: '1-3329184711' },
+  {
+    "id": "fdr-1",
+    "fdrNumber": "SBIN-2026-FDR-98124",
+    "bankName": "State Bank of India",
+    "issuingBank": "State Bank of India",
+    "branch": "Parliament Street Main Branch, New Delhi",
+    "branchName": "Parliament Street Main Branch, New Delhi",
+    "ifscCode": "SBIN0000691",
+    "amount": 12500000,
+    "currency": "INR",
+    "issueDate": "2026-04-01",
+    "maturityDate": "2036-03-31",
+    "interestRate": 7.1,
+    "depositorName": "Delhi Institute of Engineering & Technology",
+    "financialStatus": "active",
+    "workflowStatus": "submitted",
+    "trustScore": {
+      "score": 94,
+      "category": "low_observed_risk",
+      "evidenceCoverage": 88,
+      "summary": "Statutory parameters consistent across bank certification and OCR signals."
     },
-    {
-      id: 'fdr-2',
-      fdrNumber: 'PNB-2026-FDR-44019',
-      bankName: 'Punjab National Bank',
-      issuingBank: 'Punjab National Bank',
-      branch: 'Nehru Place Branch',
-      branchName: 'Nehru Place Branch',
-      ifscCode: 'PUNB0012400',
-      amount: 2500000,
-      currency: 'INR',
-      issueDate: '2026-01-01',
-      maturityDate: '2034-08-31',
-      interestRate: 6.85,
-      depositorName: 'Delhi Institute of Engineering & Technology',
-      financialStatus: 'active',
-      workflowStatus: 'submitted',
-      trustScore: {
-        score: 88,
-        category: 'low_observed_risk',
-        evidenceCoverage: 80,
-        summary: 'Demo verified sample.',
-      },
-      riskAssessment: {
-        score: 0,
-        level: 'low',
-        summary: 'Statutory Verification Standards Satisfied.',
-        findings: [],
-      },
-      bankVerification: {
-        status: 'pending',
-      },
-      duplicateCheck: {
-        status: 'no_candidate_found',
-        candidateCount: 0,
-        matches: [],
-      },
-      documentMetadata: {
-        fileName: 'pnb_fdr_specimen.pdf',
-        fileSize: 34120,
-        mimeType: 'application/pdf',
-        checksum: 'c2b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899',
-      },
-      document: {
-        fileName: 'pnb_fdr_specimen.pdf',
-        fileSize: 34120,
-        mimeType: 'application/pdf',
-        checksum: 'c2b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899',
-        downloadEndpoint: '/fdrs/fdr-2/document',
-      },
-      ocr: {
-        status: 'completed',
-        requestedLanguage: 'en-IN',
-        languageName: 'English (India)',
-        extractedFields: {
-          fdr_number: 'PNB-2026-FDR-44019',
-          bank_name: 'Punjab National Bank',
-          branch_name: 'Nehru Place Branch',
-          deposit_amount: 2500000,
-          currency: 'INR',
-          issue_date: '2026-01-01',
-          maturity_date: '2034-08-31',
-          interest_rate: 6.85,
-          ifsc_code: 'PUNB0012400',
-        },
-        comparisons: {
-          fdr_number: { status: 'match' },
-          deposit_amount: { status: 'match' },
-          maturity_date: { status: 'match' },
-        },
-      },
-      submittedAt: '2026-09-01T11:30:00Z',
-      createdAt: '2026-09-01T11:30:00Z',
-      institution: { name: 'Delhi Institute of Engineering & Technology', institutionCode: '1-3329184711' },
+    "riskAssessment": {
+      "score": 12,
+      "level": "low",
+      "summary": "Low Risk: Compliant with statutory joint lien marking requirements.",
+      "recommendedAction": "Proceed with standard approval workflow.",
+      "findings": []
     },
-  ],
+    "bankVerification": {
+      "status": "pending",
+      "qrCode": {
+        "detected": true,
+        "candidateUrl": "https://bank.sbi/verify/fdr-98124"
+      }
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "Sample_AICTE_FDR_Receipt.pdf",
+      "fileSize": 28672,
+      "mimeType": "application/pdf",
+      "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "document": {
+      "fileName": "Sample_AICTE_FDR_Receipt.pdf",
+      "fileSize": 28672,
+      "mimeType": "application/pdf",
+      "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "downloadEndpoint": "/fdrs/fdr-1/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "SBIN-2026-FDR-98124",
+        "bank_name": "State Bank of India",
+        "branch_name": "Parliament Street, New Delhi",
+        "deposit_amount": 12500000,
+        "currency": "INR",
+        "issue_date": "2026-04-01",
+        "maturity_date": "2036-03-31",
+        "interest_rate": 7.1,
+        "depositor_name": "Delhi Institute of Engineering & Technology",
+        "institution_name": "Delhi Institute of Engineering & Technology",
+        "ifsc_code": "SBIN0000691"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2026-04-02T10:00:00Z",
+    "createdAt": "2026-04-02T10:00:00Z",
+    "institution": {
+      "name": "Delhi Institute of Engineering & Technology",
+      "institutionCode": "DEL-ENG-108"
+    }
+  },
+  {
+    "id": "fdr-2",
+    "fdrNumber": "PUNB-2026-FDR-44019",
+    "bankName": "Punjab National Bank",
+    "issuingBank": "Punjab National Bank",
+    "branch": "Shivaji Nagar, Pune",
+    "branchName": "Shivaji Nagar, Pune",
+    "ifscCode": "PUNB0112400",
+    "amount": 5000000,
+    "currency": "INR",
+    "issueDate": "2025-06-01",
+    "maturityDate": "2035-05-31",
+    "interestRate": 6.85,
+    "depositorName": "Maharashtra College of Technology & Research",
+    "financialStatus": "active",
+    "workflowStatus": "under_review",
+    "trustScore": {
+      "score": 78,
+      "category": "review_recommended",
+      "evidenceCoverage": 75,
+      "summary": "Minor branch code differential under review; statutory tenure confirmed."
+    },
+    "riskAssessment": {
+      "score": 28,
+      "level": "medium",
+      "summary": "Moderate compliance review priority: regional stamp duty verification pending.",
+      "recommendedAction": "Verify stamp duty endorsement with regional treasury office.",
+      "findings": [
+        {
+          "id": "finding_pnb_stamp",
+          "label": "Special Stamp Duty Endorsement",
+          "points": 25,
+          "category": "amount_validation",
+          "evidence": "Physical stamp notation shows treasury serial TDR-PN-882 without barcode verification.",
+          "explanation": "Stamp duty endorsement format requires regional treasury verification.",
+          "status": "active"
+        }
+      ]
+    },
+    "bankVerification": {
+      "status": "pending",
+      "qrCode": {
+        "detected": true,
+        "candidateUrl": "https://pnbindia.in/tdr/verify/44019"
+      }
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "pnb_fdr_specimen.pdf",
+      "fileSize": 34120,
+      "mimeType": "application/pdf",
+      "checksum": "c2b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899"
+    },
+    "document": {
+      "fileName": "pnb_fdr_specimen.pdf",
+      "fileSize": 34120,
+      "mimeType": "application/pdf",
+      "checksum": "c2b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899",
+      "downloadEndpoint": "/fdrs/fdr-2/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "PUNB-2026-FDR-44019",
+        "bank_name": "Punjab National Bank",
+        "branch_name": "Shivaji Nagar, Pune",
+        "deposit_amount": 5000000,
+        "currency": "INR",
+        "issue_date": "2025-06-01",
+        "maturity_date": "2035-05-31",
+        "interest_rate": 6.85,
+        "depositor_name": "Maharashtra College of Technology & Research",
+        "institution_name": "Maharashtra College of Technology & Research",
+        "ifsc_code": "PUNB0112400"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2025-06-05T11:30:00Z",
+    "createdAt": "2025-06-05T11:30:00Z",
+    "institution": {
+      "name": "Maharashtra College of Technology & Research, Pune",
+      "institutionCode": "MAH-ENG-204"
+    }
+  },
+  {
+    "id": "fdr-3",
+    "fdrNumber": "ICIC-2026-FDR-77192",
+    "bankName": "ICICI Bank",
+    "issuingBank": "ICICI Bank",
+    "branch": "T Nagar Branch, Chennai",
+    "branchName": "T Nagar Branch, Chennai",
+    "ifscCode": "ICIC0000011",
+    "amount": 3500000,
+    "currency": "INR",
+    "issueDate": "2024-02-15",
+    "maturityDate": "2034-02-14",
+    "interestRate": 7.25,
+    "depositorName": "Tamil Nadu Global Education Trust",
+    "financialStatus": "active",
+    "workflowStatus": "under_review",
+    "trustScore": {
+      "score": 42,
+      "category": "high_review_priority",
+      "evidenceCoverage": 70,
+      "summary": "Depositor trust name discrepancy flagged by Indic OCR model."
+    },
+    "riskAssessment": {
+      "score": 65,
+      "level": "high",
+      "summary": "High Risk Signal: Depositor name extracted by AI differs from approved AICTE trust title.",
+      "recommendedAction": "Request amendment affidavit or clarification regarding trust title.",
+      "findings": [
+        {
+          "id": "finding_icici_name_mismatch",
+          "label": "Depositor Name Discrepancy",
+          "points": 45,
+          "category": "ocr_discrepancy",
+          "evidence": "Certificate states \"Tamil Nadu Global Education Trust\" instead of \"Tamil Nadu Global Institute\".",
+          "explanation": "Extracted title differs from AICTE portal registration. Clarification needed.",
+          "status": "active"
+        }
+      ]
+    },
+    "bankVerification": {
+      "status": "pending",
+      "qrCode": {
+        "detected": false
+      }
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "icici_security_fdr.pdf",
+      "fileSize": 29500,
+      "mimeType": "application/pdf",
+      "checksum": "a1b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b771"
+    },
+    "document": {
+      "fileName": "icici_security_fdr.pdf",
+      "fileSize": 29500,
+      "mimeType": "application/pdf",
+      "checksum": "a1b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b771",
+      "downloadEndpoint": "/fdrs/fdr-3/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "ICIC-2026-FDR-77192",
+        "bank_name": "ICICI Bank",
+        "branch_name": "T Nagar Branch, Chennai",
+        "deposit_amount": 3500000,
+        "currency": "INR",
+        "issue_date": "2024-02-15",
+        "maturity_date": "2034-02-14",
+        "interest_rate": 7.25,
+        "depositor_name": "Tamil Nadu Global Education Trust",
+        "institution_name": "Tamil Nadu Global Education Trust",
+        "ifsc_code": "ICIC0000011"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "mismatch",
+          "message": "Trust entity name does not match college charter exactly."
+        }
+      }
+    },
+    "submittedAt": "2024-02-20T14:15:00Z",
+    "createdAt": "2024-02-20T14:15:00Z",
+    "institution": {
+      "name": "Tamil Nadu Global Institute of Technology, Chennai",
+      "institutionCode": "TN-TECH-412"
+    }
+  },
+  {
+    "id": "fdr-4",
+    "fdrNumber": "HDFC-2026-FDR-11093",
+    "bankName": "HDFC Bank",
+    "issuingBank": "HDFC Bank",
+    "branch": "Koramangala 4th Block, Bengaluru",
+    "branchName": "Koramangala 4th Block, Bengaluru",
+    "ifscCode": "HDFC0000053",
+    "amount": 2500000,
+    "currency": "INR",
+    "issueDate": "2026-01-10",
+    "maturityDate": "2031-01-09",
+    "interestRate": 7,
+    "depositorName": "Bangalore Academy of Advanced Engineering",
+    "financialStatus": "active",
+    "workflowStatus": "correction_requested",
+    "trustScore": {
+      "score": 55,
+      "category": "review_recommended",
+      "evidenceCoverage": 80,
+      "summary": "Deposit tenure is 5 years; Approval Process Handbook mandates minimum 10-year lock-in."
+    },
+    "riskAssessment": {
+      "score": 48,
+      "level": "medium",
+      "summary": "Mandatory statutory term mismatch. Correction requested from institution.",
+      "recommendedAction": "Issue formal requisition for 10-year lock-in reissuance.",
+      "findings": [
+        {
+          "id": "finding_hdfc_tenure_short",
+          "label": "Non-Conforming 5-Year Tenure",
+          "points": 35,
+          "category": "maturity_mismatch",
+          "evidence": "Maturity date 2031-01-09 provides only 60 months against mandated 120 months.",
+          "explanation": "Instrument tenure violates AICTE 120-month security deposit requirement.",
+          "status": "active"
+        }
+      ]
+    },
+    "bankVerification": {
+      "status": "pending"
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "hdfc_deposit_receipt.pdf",
+      "fileSize": 31200,
+      "mimeType": "application/pdf",
+      "checksum": "d4b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b110"
+    },
+    "document": {
+      "fileName": "hdfc_deposit_receipt.pdf",
+      "fileSize": 31200,
+      "mimeType": "application/pdf",
+      "checksum": "d4b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b110",
+      "downloadEndpoint": "/fdrs/fdr-4/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "HDFC-2026-FDR-11093",
+        "bank_name": "HDFC Bank",
+        "branch_name": "Koramangala, Bengaluru",
+        "deposit_amount": 2500000,
+        "currency": "INR",
+        "issue_date": "2026-01-10",
+        "maturity_date": "2031-01-09",
+        "institution_name": "Bangalore Academy of Advanced Engineering"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2026-01-15T09:20:00Z",
+    "createdAt": "2026-01-15T09:20:00Z",
+    "institution": {
+      "name": "Bangalore Academy of Advanced Engineering",
+      "institutionCode": "KAR-ENG-501"
+    }
+  },
+  {
+    "id": "fdr-5",
+    "fdrNumber": "CNRB-2026-FDR-88341",
+    "bankName": "Canara Bank",
+    "issuingBank": "Canara Bank",
+    "branch": "Navrangpura, Ahmedabad",
+    "branchName": "Navrangpura, Ahmedabad",
+    "ifscCode": "CNRB0000122",
+    "amount": 7500000,
+    "currency": "INR",
+    "issueDate": "2026-03-01",
+    "maturityDate": "2036-02-28",
+    "interestRate": 7.15,
+    "depositorName": "Gujarat National Polytechnic Institute",
+    "financialStatus": "active",
+    "workflowStatus": "approved",
+    "trustScore": {
+      "score": 98,
+      "category": "low_observed_risk",
+      "evidenceCoverage": 95,
+      "summary": "Bank verified via direct confirmation with full lien marking intact."
+    },
+    "riskAssessment": {
+      "score": 0,
+      "level": "low",
+      "summary": "All Statutory Safeguards Satisfied. Verified by AICTE Regional Bureau.",
+      "recommendedAction": "Retain in approved registry. Next monitoring event at T-90 days before maturity.",
+      "findings": []
+    },
+    "bankVerification": {
+      "status": "verified_with_bank",
+      "manualVerification": {
+        "evidenceSource": "Canara Bank Regional Head Office written confirmation Ref: CB/AHM/2026/SEC-99",
+        "notes": "Confirmed 10-year tripartite security deposit with joint lien in favor of Member Secretary, AICTE."
+      }
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "canara_statutory_lien.pdf",
+      "fileSize": 30100,
+      "mimeType": "application/pdf",
+      "checksum": "e5b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b883"
+    },
+    "document": {
+      "fileName": "canara_statutory_lien.pdf",
+      "fileSize": 30100,
+      "mimeType": "application/pdf",
+      "checksum": "e5b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b883",
+      "downloadEndpoint": "/fdrs/fdr-5/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "CNRB-2026-FDR-88341",
+        "bank_name": "Canara Bank",
+        "branch_name": "Navrangpura, Ahmedabad",
+        "deposit_amount": 7500000,
+        "currency": "INR",
+        "issue_date": "2026-03-01",
+        "maturity_date": "2036-02-28",
+        "institution_name": "Gujarat National Polytechnic Institute"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2026-03-05T12:00:00Z",
+    "createdAt": "2026-03-05T12:00:00Z",
+    "institution": {
+      "name": "Gujarat National Polytechnic Institute, Ahmedabad",
+      "institutionCode": "GUJ-POLY-311"
+    }
+  },
+  {
+    "id": "fdr-6",
+    "fdrNumber": "BARB-2026-FDR-55104",
+    "bankName": "Bank of Baroda",
+    "issuingBank": "Bank of Baroda",
+    "branch": "Park Street, Kolkata",
+    "branchName": "Park Street, Kolkata",
+    "ifscCode": "BARB0PARKST",
+    "amount": 4000000,
+    "currency": "INR",
+    "issueDate": "2025-11-20",
+    "maturityDate": "2035-11-19",
+    "interestRate": 6.9,
+    "depositorName": "Kolkata Institute of Pharmaceutical Studies",
+    "financialStatus": "active",
+    "workflowStatus": "under_review",
+    "trustScore": {
+      "score": 36,
+      "category": "high_review_priority",
+      "evidenceCoverage": 65,
+      "summary": "Potential duplicate pledging collision detected across regional bureaus."
+    },
+    "riskAssessment": {
+      "score": 75,
+      "level": "critical",
+      "summary": "Critical Risk: Normalized FDR number collision detected with another affiliated institution.",
+      "recommendedAction": "Initiate mandatory physical branch inspection and lock portal approval.",
+      "findings": [
+        {
+          "id": "finding_barb_collision",
+          "label": "Potential Double-Pledge Collision",
+          "points": 75,
+          "category": "duplicate_collision",
+          "evidence": "Instrument number BARB-2026-FDR-55104 matches existing pledge record in Eastern Zonal register.",
+          "explanation": "Identical certificate number claimed by two colleges. High fraud risk.",
+          "status": "active"
+        }
+      ]
+    },
+    "bankVerification": {
+      "status": "pending"
+    },
+    "duplicateCheck": {
+      "status": "same_instrument_reference",
+      "candidateCount": 1,
+      "matches": [
+        {
+          "fdrNumber": "BARB-2026-FDR-55104",
+          "institutionName": "Bengal Pharmacy College (Duplicate Candidate)",
+          "bankName": "Bank of Baroda",
+          "matchType": "same_instrument_reference",
+          "similarityScore": 95,
+          "reasons": [
+            "Identical FDR reference number submitted across multiple institutions."
+          ]
+        }
+      ]
+    },
+    "documentMetadata": {
+      "fileName": "bob_pharma_fdr.pdf",
+      "fileSize": 28900,
+      "mimeType": "application/pdf",
+      "checksum": "f6b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b551"
+    },
+    "document": {
+      "fileName": "bob_pharma_fdr.pdf",
+      "fileSize": 28900,
+      "mimeType": "application/pdf",
+      "checksum": "f6b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b551",
+      "downloadEndpoint": "/fdrs/fdr-6/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "BARB-2026-FDR-55104",
+        "bank_name": "Bank of Baroda",
+        "branch_name": "Park Street, Kolkata",
+        "deposit_amount": 4000000,
+        "currency": "INR",
+        "issue_date": "2025-11-20",
+        "maturity_date": "2035-11-19",
+        "institution_name": "Kolkata Institute of Pharmaceutical Studies"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2025-11-25T16:40:00Z",
+    "createdAt": "2025-11-25T16:40:00Z",
+    "institution": {
+      "name": "Kolkata Institute of Pharmaceutical Studies",
+      "institutionCode": "WB-PHARM-119"
+    }
+  },
+  {
+    "id": "fdr-7",
+    "fdrNumber": "UBIN-2026-FDR-22910",
+    "bankName": "Union Bank of India",
+    "issuingBank": "Union Bank of India",
+    "branch": "MI Road, Jaipur",
+    "branchName": "MI Road, Jaipur",
+    "ifscCode": "UBIN0533211",
+    "amount": 2000000,
+    "currency": "INR",
+    "issueDate": "2016-11-30",
+    "maturityDate": "2026-11-29",
+    "interestRate": 7.5,
+    "depositorName": "Jaipur College of Architecture & Design",
+    "financialStatus": "active",
+    "workflowStatus": "under_review",
+    "trustScore": {
+      "score": 82,
+      "category": "low_observed_risk",
+      "evidenceCoverage": 85,
+      "summary": "10-Year statutory tenure nearing maturity (T-30 Days threshold)."
+    },
+    "riskAssessment": {
+      "score": 20,
+      "level": "low",
+      "summary": "Instrument Approaching Statutory Maturity Deadline. Renewal advisory issued.",
+      "recommendedAction": "Alert institution to initiate rollover or provide bank renewal advice.",
+      "findings": [
+        {
+          "id": "finding_ubin_maturing_soon",
+          "label": "T-30 Days Maturity Alert",
+          "points": 15,
+          "category": "maturity_tracking",
+          "evidence": "Deposit maturity date 2026-11-29 falls within statutory warning threshold.",
+          "explanation": "Security deposit matures within 30 days. Renewal or replacement instrument due.",
+          "status": "active"
+        }
+      ]
+    },
+    "bankVerification": {
+      "status": "verified_with_bank",
+      "manualVerification": {
+        "evidenceSource": "Union Bank Branch Confirmation Letter Ref: UBI/JPR/FDR/2026/89",
+        "notes": "Active deposit confirmed. Reissuance requested upon upcoming maturity."
+      }
+    },
+    "duplicateCheck": {
+      "status": "no_candidate_found",
+      "candidateCount": 0,
+      "matches": []
+    },
+    "documentMetadata": {
+      "fileName": "union_bank_jaipur_instrument.pdf",
+      "fileSize": 27800,
+      "mimeType": "application/pdf",
+      "checksum": "b7b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b229"
+    },
+    "document": {
+      "fileName": "union_bank_jaipur_instrument.pdf",
+      "fileSize": 27800,
+      "mimeType": "application/pdf",
+      "checksum": "b7b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b229",
+      "downloadEndpoint": "/fdrs/fdr-7/document"
+    },
+    "ocr": {
+      "status": "completed",
+      "requestedLanguage": "en-IN",
+      "languageName": "English (India)",
+      "extractedFields": {
+        "fdr_number": "UBIN-2026-FDR-22910",
+        "bank_name": "Union Bank of India",
+        "branch_name": "MI Road, Jaipur",
+        "deposit_amount": 2000000,
+        "currency": "INR",
+        "issue_date": "2016-11-30",
+        "maturity_date": "2026-11-29",
+        "institution_name": "Jaipur College of Architecture & Design"
+      },
+      "comparisons": {
+        "fdr_number": {
+          "status": "match"
+        },
+        "deposit_amount": {
+          "status": "match"
+        },
+        "maturity_date": {
+          "status": "match"
+        },
+        "institution_name": {
+          "status": "match"
+        }
+      }
+    },
+    "submittedAt": "2026-10-15T15:00:00Z",
+    "createdAt": "2026-10-15T15:00:00Z",
+    "institution": {
+      "name": "Jaipur College of Architecture & Design",
+      "institutionCode": "RAJ-ARCH-608"
+    }
+  }
+],
   fdrs: [],
-  pagination: { page: 1, limit: 20, total: 2, pages: 1 },
+  pagination: { page: 1, limit: 20, total: 7, pages: 1 },
 };
 DEMO_FDR_DATA.fdrs = DEMO_FDR_DATA.records;
 
@@ -1072,6 +1611,107 @@ export function AuthProvider({ children }) {
           if (path.includes('institutions/me')) {
             return Promise.resolve({ institution: DEMO_INSTITUTION_USER.institution });
           }
+          if (path.includes('/extract') && options.method === 'POST') {
+            const parts = path.split('/');
+            const targetId = parts[2];
+            const matched = DEMO_FDR_DATA.records.find((r) => r.id === targetId) || DEMO_FDR_DATA.records[0];
+            const requestedLang = (options.body && options.body.language) || 'en-IN';
+            const extractionResult = {
+              fdrId: matched.id,
+              status: 'completed',
+              requestedLanguage: requestedLang,
+              languageName: requestedLang === 'hi-IN' ? 'Hindi (हिन्दी)' : 'English (India)',
+              submittedAt: new Date().toISOString(),
+              completedAt: new Date().toISOString(),
+              processedAt: new Date().toISOString(),
+              extractedFields: {
+                fdr_number: matched.fdrNumber || 'SBIN-2026-FDR-98124',
+                bank_name: matched.bankName || matched.issuingBank || 'State Bank of India',
+                branch_name: matched.branch || matched.branchName || 'Parliament Street, New Delhi',
+                deposit_amount: Number(matched.amount) || 2500000,
+                currency: matched.currency || 'INR',
+                issue_date: matched.issueDate ? String(matched.issueDate).slice(0, 10) : '2026-04-01',
+                maturity_date: matched.maturityDate ? String(matched.maturityDate).slice(0, 10) : '2029-04-01',
+                interest_rate: matched.interestRate !== undefined && matched.interestRate !== '' ? Number(matched.interestRate) : 7.1,
+                depositor_name: matched.depositorName || 'Delhi Institute of Engineering & Technology',
+                institution_name: matched.institution?.name || 'Delhi Institute of Engineering & Technology',
+                ifsc_code: matched.ifscCode || 'SBIN0000691',
+              },
+              comparisons: {
+                fdr_number: { status: 'match' },
+                bank_name: { status: 'match' },
+                branch_name: { status: 'match' },
+                deposit_amount: { status: 'match' },
+                currency: { status: 'match' },
+                issue_date: { status: 'match' },
+                maturity_date: { status: 'match' },
+                institution_name: { status: 'match' },
+              },
+              trustScore: matched.trustScore || { score: 96, category: 'low_observed_risk', evidenceCoverage: 92, summary: 'Automated OCR extraction verified.' },
+              riskScore: 0,
+            };
+            matched.ocr = extractionResult;
+            matched.ocrResult = extractionResult;
+            return Promise.resolve(extractionResult);
+          }
+          if (path.includes('/extraction')) {
+            const parts = path.split('/');
+            const targetId = parts[2];
+            const matched = DEMO_FDR_DATA.records.find((r) => r.id === targetId) || DEMO_FDR_DATA.records[0];
+            return Promise.resolve(matched.ocr || matched.ocrResult || {
+              fdrId: matched.id,
+              status: 'completed',
+              requestedLanguage: 'en-IN',
+              languageName: 'English (India)',
+              extractedFields: {
+                fdr_number: matched.fdrNumber || 'SBIN-2026-FDR-98124',
+                bank_name: matched.bankName || matched.issuingBank || 'State Bank of India',
+                branch_name: matched.branch || matched.branchName || 'Parliament Street, New Delhi',
+                deposit_amount: Number(matched.amount) || 2500000,
+                currency: matched.currency || 'INR',
+                issue_date: matched.issueDate ? String(matched.issueDate).slice(0, 10) : '2026-04-01',
+                maturity_date: matched.maturityDate ? String(matched.maturityDate).slice(0, 10) : '2029-04-01',
+                interest_rate: matched.interestRate !== undefined && matched.interestRate !== '' ? Number(matched.interestRate) : 7.1,
+                depositor_name: matched.depositorName || 'Delhi Institute of Engineering & Technology',
+                institution_name: matched.institution?.name || 'Delhi Institute of Engineering & Technology',
+                ifsc_code: matched.ifscCode || 'SBIN0000691',
+              },
+              comparisons: {
+                fdr_number: { status: 'match' },
+                bank_name: { status: 'match' },
+                branch_name: { status: 'match' },
+                deposit_amount: { status: 'match' },
+                currency: { status: 'match' },
+                issue_date: { status: 'match' },
+                maturity_date: { status: 'match' },
+                institution_name: { status: 'match' },
+              },
+              trustScore: matched.trustScore || { score: 96, category: 'low_observed_risk', evidenceCoverage: 92, summary: 'Automated OCR extraction verified.' },
+              riskScore: 0,
+            });
+          }
+          if (path.includes('/forensics')) {
+            const parts = path.split('/');
+            const targetId = parts[2];
+            const matched = DEMO_FDR_DATA.records.find((r) => r.id === targetId) || DEMO_FDR_DATA.records[0];
+            const analysis = {
+              fdrId: matched.id,
+              fileName: matched.document?.fileName || matched.documentMetadata?.fileName || 'Sample_AICTE_FDR_Receipt.pdf',
+              checksum: matched.document?.checksum || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+              checksumVerified: true,
+              fileSize: matched.document?.fileSize || 28672,
+              mimeType: 'application/pdf',
+              analysisStatus: 'analyzed',
+              analyzedAt: new Date().toISOString(),
+              overallAuthenticityRisk: 'low',
+              findings: [
+                { code: 'SHA256_INTEGRITY_VERIFIED', severity: 'info', message: 'Cryptographic byte checksum matches initial upload signature.' },
+                { code: 'PDF_STRUCTURE_VALID', severity: 'info', message: 'PDF 1.7 standard header and stream dictionaries verified.' },
+              ],
+            };
+            matched.forensicAnalysis = analysis;
+            return Promise.resolve({ analysis });
+          }
           if (path.includes('review-queue') || path.includes('/fdrs') || path.includes('fdrs')) {
             if (options.method === 'POST') {
               let fdrPayload = {};
@@ -1158,19 +1798,105 @@ export function AuthProvider({ children }) {
               return Promise.resolve({ fdr: matched, record: matched });
             }
 
+            // Review Queue list handling
+            if (path.includes('review-queue')) {
+              let filtered = [...DEMO_FDR_DATA.records];
+              try {
+                const queryStr = path.includes('?') ? path.slice(path.indexOf('?') + 1) : '';
+                const params = new URLSearchParams(queryStr);
+                const searchParam = params.get('search');
+                const riskParam = params.get('riskLevel');
+                const statusParam = params.get('workflowStatus');
+                const sortParam = params.get('sortBy');
+
+                if (searchParam) {
+                  const q = searchParam.toLowerCase();
+                  filtered = filtered.filter((r) =>
+                    (r.fdrNumber && r.fdrNumber.toLowerCase().includes(q)) ||
+                    (r.bankName && r.bankName.toLowerCase().includes(q)) ||
+                    (r.institution?.name && r.institution.name.toLowerCase().includes(q))
+                  );
+                }
+                if (riskParam) {
+                  filtered = filtered.filter((r) => (r.riskAssessment?.level || '').toLowerCase() === riskParam.toLowerCase());
+                }
+                if (statusParam) {
+                  filtered = filtered.filter((r) => (r.workflowStatus || '').toLowerCase() === statusParam.toLowerCase());
+                }
+                if (sortParam === 'risk_desc') {
+                  filtered.sort((a, b) => (b.riskAssessment?.score || 0) - (a.riskAssessment?.score || 0));
+                } else if (sortParam === 'risk_asc') {
+                  filtered.sort((a, b) => (a.riskAssessment?.score || 0) - (b.riskAssessment?.score || 0));
+                } else if (sortParam === 'urgency') {
+                  filtered.sort((a, b) => (b.riskAssessment?.score || 0) - (a.riskAssessment?.score || 0));
+                } else if (sortParam === 'date_asc') {
+                  filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                }
+              } catch (_) {}
+
+              return Promise.resolve({
+                records: filtered,
+                pagination: {
+                  page: 1,
+                  limit: 20,
+                  total: filtered.length,
+                  pages: Math.ceil(filtered.length / 20) || 1,
+                },
+              });
+            }
+
+            // Review decisions POST in demo
+            if (path.includes('/review') && options.method === 'POST') {
+              const matched = DEMO_FDR_DATA.records.find((r) => path.includes(r.id)) || DEMO_FDR_DATA.records[0];
+              const decision = options.body?.decision;
+              if (decision === 'request_correction') {
+                matched.workflowStatus = 'correction_requested';
+              } else if (decision === 'complete_review' || decision === 'approved') {
+                matched.workflowStatus = 'approved';
+              } else if (decision === 'reject_submission') {
+                matched.workflowStatus = 'rejected';
+              }
+              return Promise.resolve({ success: true, message: 'Review decision recorded.' });
+            }
+
+            // Bank verification POST in demo
+            if (path.includes('/bank-verification') && options.method === 'POST') {
+              const matched = DEMO_FDR_DATA.records.find((r) => path.includes(r.id)) || DEMO_FDR_DATA.records[0];
+              matched.bankVerification = {
+                status: options.body?.status || 'verified_with_bank',
+                manualVerification: {
+                  evidenceSource: options.body?.evidenceSource || 'Official confirmation letter',
+                  notes: options.body?.notes || 'Branch confirmation verified',
+                  verifiedAt: new Date().toISOString(),
+                },
+              };
+              return Promise.resolve({ success: true, message: 'Bank branch verification recorded.' });
+            }
+
+            // Recalculate trust score POST in demo
+            if (path.includes('/trust-score/recalculate')) {
+              const matched = DEMO_FDR_DATA.records.find((r) => path.includes(r.id)) || DEMO_FDR_DATA.records[0];
+              return Promise.resolve({
+                trustScore: matched.trustScore,
+                riskAssessment: matched.riskAssessment,
+              });
+            }
+
+            // Review Detail GET
             if (path.includes('/review') || (path.split('/').length > 2 && !path.includes('?'))) {
-              const targetId = path.split('/').filter(Boolean).pop();
-              const matched = DEMO_FDR_DATA.records.find((r) => r.id === targetId) || DEMO_FDR_DATA.records[0];
+              const targetId = path.split('/').filter(Boolean).filter((p) => p !== 'review' && p !== 'admin' && p !== 'fdrs')[0] || path.split('/').filter(Boolean).pop();
+              const matched = DEMO_FDR_DATA.records.find((r) => r.id === targetId || path.includes(r.id)) || DEMO_FDR_DATA.records[0];
               return Promise.resolve({
                 fdr: matched,
                 record: matched,
-                institution: matched.institution || session?.user?.institution || { name: 'Delhi Institute of Engineering & Technology', institutionCode: '1-3329184711' },
+                institution: matched.institution || session?.user?.institution || { name: 'Delhi Institute of Engineering & Technology', institutionCode: 'DEL-ENG-108' },
                 trustScore: matched.trustScore,
                 riskAssessment: matched.riskAssessment,
                 bankVerification: matched.bankVerification,
                 duplicateCheck: matched.duplicateCheck,
               });
             }
+
             return Promise.resolve(DEMO_FDR_DATA);
           }
           return Promise.resolve({ ok: true, status: 'success', data: {} });
@@ -4194,7 +4920,27 @@ function FdrDetailPage() {
         depositorName: record.depositorName || '',
         ifscCode: record.ifscCode || '',
       });
-      if (extraction) setOcr(extraction);
+      let ocrData = null;
+            if (extraction && (extraction.status || extraction.extractedFields || extraction.extractedData)) {
+              ocrData = extraction;
+            } else if (record.ocr) {
+              ocrData = record.ocr;
+            } else if (record.ocrResult) {
+              ocrData = {
+                ...record.ocrResult,
+                extractedFields: record.ocrResult.extractedData || record.ocrResult.extractedFields,
+                comparisons: record.ocrResult.comparisonResults || record.ocrResult.comparisons,
+              };
+            }
+            if (ocrData) {
+              if (!ocrData.extractedFields && ocrData.extractedData) {
+                ocrData.extractedFields = ocrData.extractedData;
+              }
+              if (!ocrData.comparisons && ocrData.comparisonResults) {
+                ocrData.comparisons = ocrData.comparisonResults;
+              }
+              setOcr(ocrData);
+            }
       const analysis = await request(`/fdrs/${id}/forensics`).catch((requestError) => {
         if (requestError.status === 404) return null;
         throw requestError;
@@ -4236,8 +4982,29 @@ function FdrDetailPage() {
   const setEditField = (key) => (value) => setEditForm((current) => ({ ...current, [key]: value }));
 
   const startExtraction = () => runAction('ocr', async () => {
-    const result = await request(`/fdrs/${id}/extract`, { method: 'POST', body: { language: selectedLanguage } });
-    setOcr(result);
+    try {
+      const result = await request(`/fdrs/${id}/extract`, { method: 'POST', body: { language: selectedLanguage } });
+      if (result && (result.status || result.extractedFields || result.extractedData)) setOcr(result);
+    } catch (requestError) {
+      if (requestError.status === 409 || requestError.message?.includes('already has extraction results') || requestError.message?.includes('already_extracted')) {
+        const polled = await request(`/fdrs/${id}/extraction`).catch(() => null);
+        if (polled) setOcr(polled);
+        await load();
+        return;
+      }
+      throw requestError;
+    }
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        const polled = await request(`/fdrs/${id}/extraction`);
+        if (polled && (polled.extractedFields || polled.extractedData || polled.status === 'completed' || polled.status === 'failed')) {
+          setOcr(polled);
+          break;
+        }
+      } catch {}
+    }
+    await load();
   });
 
   const runForensics = () => runAction('forensics', async () => {
@@ -4273,7 +5040,8 @@ function FdrDetailPage() {
     });
   };
 
-  const compareValues = ocr?.comparisons || {};
+  const extractedFields = ocr?.extractedFields || ocr?.extractedData || fdr?.ocrResult?.extractedData;
+  const compareValues = ocr?.comparisons || ocr?.comparisonResults || fdr?.ocrResult?.comparisonResults || {};
   const trustScore = fdr.trustScore;
   const verificationStatus = getOverallVerificationStatus({
     workflowStatus: fdr.workflowStatus,
@@ -4457,16 +5225,29 @@ function FdrDetailPage() {
                 {ocr?.status === 'processing' && <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Checking provider job…</span>}
               </div>
 
-              {ocr?.extractedFields && (
+              {extractedFields ? (
                 <ComparisonTable
                   submitted={{ ...fdr, institutionName: user?.institution?.name }}
-                  extracted={ocr.extractedFields}
+                  extracted={extractedFields}
                   comparisons={compareValues}
                   onEditField={(field) => {
                     setEdit(true);
                   }}
                 />
-              )}
+              ) : ['submitting', 'queued', 'processing', 'pending'].includes(ocr?.status) ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#f8fafc', borderRadius: 8, margin: '12px 0', border: '1px solid var(--border)' }}>
+                  <RefreshCw size={16} className="animate-spin" style={{ color: '#002147' }} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#002147' }}>
+                    Sarvam Vision AI is extracting key-value certificate fields…
+                  </span>
+                </div>
+              ) : ocr?.status === 'failed' ? (
+                <div style={{ marginTop: 12 }}>
+                  <Notice tone="danger">
+                    OCR extraction could not be completed: {ocr.errorCode || 'Document processing error'}.
+                  </Notice>
+                </div>
+              ) : null}
 
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -9152,7 +9933,7 @@ function DocumentViewerCard({ documentMetadata, downloadPath, token, fdrId, titl
 }
 
 function ValidationDiscrepanciesPanel({ fdr = {}, ocr = {}, duplicateCheck }) {
-  const comparisons = ocr?.comparisons || {};
+  const comparisons = ocr?.comparisons || ocr?.comparisonResults || {};
   const mismatches = Object.entries(comparisons).filter(([, item]) => item?.status === 'mismatch');
   const missing = Object.entries(comparisons).filter(([, item]) => item?.status === 'missing_or_unreadable');
   

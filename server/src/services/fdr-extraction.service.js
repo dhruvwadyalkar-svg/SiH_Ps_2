@@ -498,6 +498,15 @@ const persistCompletedResults = async ({ fdr, user, status, extractedData }) => 
 
 export const getFdrExtraction = async ({ user, fdrId }) => {
   const fdr = await getFdrById({ user, fdrId });
+  if (!fdr.ocrResult?.providerJobId && mongoose.isValidObjectId(fdrId)) {
+    try {
+      const raw = await FDR.findById(fdrId).select('+ocrResult.providerJobId');
+      if (raw?.ocrResult?.providerJobId) {
+        fdr.ocrResult = fdr.ocrResult || {};
+        fdr.ocrResult.providerJobId = raw.ocrResult.providerJobId;
+      }
+    } catch {}
+  }
   const status = fdr.ocrResult?.status || 'not_started';
   if (terminalStatuses.includes(status) || status === 'not_started' || status === 'submitting') {
     return toPublicExtraction(fdr);
