@@ -13,10 +13,33 @@ import bankConfirmationRoutes from './routes/bank-confirmation.routes.js';
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  const envOrigin = process.env.FRONTEND_ORIGIN;
+  if (!envOrigin || envOrigin.trim() === '*' || envOrigin.trim() === '') return true;
+  const origins = envOrigin.split(',').map((o) => o.trim().toLowerCase());
+  const lowerOrigin = origin.toLowerCase();
+  return (
+    origins.includes('*') ||
+    origins.includes(lowerOrigin) ||
+    lowerOrigin.endsWith('.vercel.app') ||
+    lowerOrigin.includes('localhost')
+  );
+};
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   }),
 );
 app.use(express.json({ limit: '100kb' }));

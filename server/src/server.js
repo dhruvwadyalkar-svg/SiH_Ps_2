@@ -27,7 +27,7 @@ const startServer = async () => {
       console.warn('Backend is running in offline mode. If using MongoDB Atlas, whitelist your IP address in Atlas Network Access.');
     }
 
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`Backend server listening on port ${port}`);
     });
   } catch (error) {
