@@ -21,6 +21,7 @@ app.use(
 );
 app.use(express.json({ limit: '100kb' }));
 
+app.get('/', (_req, res) => res.json({ status: 'ok', message: 'AICTE FDR Portal Backend API is running.', healthEndpoint: '/api/health' }));
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
