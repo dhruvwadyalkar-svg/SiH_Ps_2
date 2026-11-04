@@ -1,6 +1,6 @@
 {
   "name": "aicte-fdr-portal-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend foundation for the AICTE FDR Management Portal",
   "main": "src/server.js",
   "scripts": {
